@@ -1,18 +1,6 @@
 # Clocktower Local
 
-MVP mobile-first em Astro + JavaScript + CSS para consultar roles e montar uma partida local de Blood on the Clocktower.
-
-## O que já tem
-
-- Tela inicial com apenas 2 botões: **Partida Local** e **Guia**.
-- Guia com busca, filtro por tipo e filtro por seleção.
-- Partida local com seleção principal: Trouble Brewing, Bad Moon Rising, Sects & Violets, Experimental e Todas as roles.
-- Subseleção por role: o host liga/desliga cada personagem.
-- Duas barras automáticas:
-  - dificuldade para o bem / facilidade para o mal;
-  - duração aproximada da noite.
-- Resumo final e botão para copiar a seleção em JSON.
-- Salva a última seleção no `localStorage` do navegador.
+Site mobile-first em Astro para montar partida local e consultar guia de roles.
 
 ## Rodar localmente
 
@@ -21,25 +9,38 @@ npm install
 npm run dev
 ```
 
-Depois abra o endereço que o Astro mostrar no terminal.
+Se estiver usando o `base` de GitHub Pages no build, a URL publicada será algo como:
 
-## Build
-
-```bash
-npm run build
-npm run preview
+```txt
+https://leonn190.github.io/Blood/
 ```
 
-## Observação sobre conteúdo
+## Deploy no GitHub Pages
 
-Os nomes das roles e as seleções foram organizados com base em fontes públicas/official wiki. As descrições dentro do app são resumos curtos e originais, feitos para consulta rápida durante a partida, não substituem o almanac oficial.
+Este projeto já inclui `.github/workflows/deploy.yml` para publicar com GitHub Actions.
 
-O projeto não usa imagens, ícones oficiais ou textos longos copiados do jogo.
+No GitHub, vá em:
 
-## Próximos passos sugeridos
+```txt
+Settings > Pages > Build and deployment > Source > GitHub Actions
+```
 
-- Criar tela de distribuição de roles para jogadores.
-- Adicionar ordem da primeira noite e das outras noites.
-- Adicionar seleção de jogadores vivos/mortos.
-- Refinar as fórmulas das barras de dificuldade e noite.
-- Criar presets personalizados salvos no navegador.
+Depois faça commit/push na branch `main`.
+
+## Importante
+
+Os arquivos do projeto precisam ficar na raiz do repositório, assim:
+
+```txt
+.github/workflows/deploy.yml
+astro.config.mjs
+package.json
+src/pages/index.astro
+src/scripts/app.js
+src/scripts/roles.js
+src/styles/global.css
+public/favicon.svg
+public/manifest.webmanifest
+```
+
+Não coloque tudo dentro de uma pasta extra tipo `botc-mobile-site/` dentro do repo, senão o Actions não acha o projeto Astro.
