@@ -1,10 +1,9 @@
 {
-  "name": "Clocktower Local",
+  "name": "Clocktower Clássico Local",
   "short_name": "Clocktower",
   "start_url": ".",
-  "scope": ".",
   "display": "standalone",
-  "background_color": "#16070d",
-  "theme_color": "#16070d",
+  "background_color": "#090912",
+  "theme_color": "#c93b3b",
   "icons": []
 }
