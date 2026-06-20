@@ -140,12 +140,12 @@ export const ROLES = [
     name: 'Guardião dos Corvos',
     type: 'townsfolk',
     script: 'classic',
-    duration: 2,
+    duration: 1,
     difficulty: -2,
     nightOrderFirst: null,
-    nightOrderOther: 50,
+    nightOrderOther: null,
     tags: [],
-    summary: 'Se morrer durante a noite, acorda e escolhe um jogador para aprender a role dele.',
+    summary: 'Se morrer durante a noite ou for executado, acorda na próxima noite e escolhe um jogador para aprender a role dele.',
     action: 'ravenkeeper'
   },
   {

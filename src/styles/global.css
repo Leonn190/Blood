@@ -571,3 +571,41 @@ textarea:focus {
 }
 
 .pill input { width: auto; min-height: 0; margin: 0 5px 0 0; accent-color: var(--gold); }
+
+select {
+  appearance: none;
+  color: var(--text);
+  background-color: rgba(24, 24, 38, 0.96);
+}
+
+select option {
+  color: var(--text);
+  background: #151522;
+}
+
+select option:checked,
+select option:hover {
+  color: #111018;
+  background: #f0c36a;
+}
+
+.role-card {
+  border-left-width: 5px;
+}
+
+.role-card.townsfolk { border-left-color: var(--blue); }
+.role-card.outsider { border-left-color: var(--gold); }
+.role-card.minion { border-left-color: var(--purple); }
+.role-card.demon { border-left-color: var(--red); }
+
+.host-status p {
+  margin-top: 6px;
+}
+
+.actor-line {
+  border-radius: 16px;
+  border: 1px solid var(--soft-line);
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--text) !important;
+  padding: 12px;
+}

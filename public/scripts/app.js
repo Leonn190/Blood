@@ -9,7 +9,7 @@ import {
   isEvilRole
 } from './roles.js';
 
-const STORAGE_KEY = 'clocktower-classico-v3';
+const STORAGE_KEY = 'clocktower-classico-v4';
 const app = document.querySelector('#app');
 
 const initialState = {
@@ -129,6 +129,16 @@ function rolePill(role) {
   return `<span class="type-pill ${role.type}">${TYPE_LABEL[role.type]}</span>`;
 }
 
+function roleNightLabel(role) {
+  const first = role.nightOrderFirst !== null && role.nightOrderFirst !== undefined;
+  const other = role.nightOrderOther !== null && role.nightOrderOther !== undefined;
+  if (role.id === 'ravenkeeper') return 'Etapa condicional: se morrer';
+  if (first && other) return 'Etapas: Noite 1 e próximas';
+  if (first) return 'Etapa: só Noite 1';
+  if (other) return 'Etapa: próximas noites';
+  return 'Sem etapa noturna';
+}
+
 function tagsHTML(tags = []) {
   return `<div class="tags">${tags.map((tag) => `<span class="tag">${escapeHTML(tag)}</span>`).join('')}</div>`;
 }
@@ -141,7 +151,7 @@ function roleCard(role, options = {}) {
     ? `<input type="checkbox" data-action="toggle-role" data-role-id="${role.id}" ${checked} ${disabled} />`
     : '';
   return `
-    <article class="card${selectedClass}${options.disabled ? ' disabled' : ''}">
+    <article class="card role-card ${role.type}${selectedClass}${options.disabled ? ' disabled' : ''}">
       <div class="${options.checkbox ? 'role-check' : ''}">
         ${input}
         <div>
@@ -152,7 +162,7 @@ function roleCard(role, options = {}) {
             </div>
             ${rolePill(role)}
           </div>
-          <p class="hint">Noite: ${role.duration} etapa${role.duration === 1 ? '' : 's'} · Dificuldade para o bem: ${role.difficulty > 0 ? '+' : ''}${role.difficulty}</p>
+          <p class="hint">${roleNightLabel(role)} · Dificuldade para o bem: ${role.difficulty > 0 ? '+' : ''}${role.difficulty}</p>
         </div>
       </div>
     </article>
@@ -195,39 +205,48 @@ function setupValidation() {
 
 function metricInfo() {
   const roles = selectedRoles();
-  const duration = roles.reduce((sum, role) => sum + Number(role.duration || 0), 0);
+  const hasMinion = roles.some((role) => role.type === 'minion');
+  const hasDemon = roles.some((role) => role.type === 'demon');
+  const firstRoleSteps = roles.filter((role) => role.nightOrderFirst !== null && role.nightOrderFirst !== undefined).length;
+  const otherRoleSteps = roles.filter((role) => role.nightOrderOther !== null && role.nightOrderOther !== undefined).length;
+  const firstTeamSteps = (hasMinion ? 1 : 0) + (hasDemon ? 1 : 0);
+  const firstNightSteps = firstRoleSteps + firstTeamSteps;
+  const otherNightSteps = otherRoleSteps;
+  const conditionalSteps = roles.some((role) => role.id === 'ravenkeeper') ? 1 : 0;
+  const duration = Math.max(firstNightSteps, otherNightSteps + conditionalSteps);
   const rawDifficulty = roles.reduce((sum, role) => sum + Number(role.difficulty || 0), 0);
   const difficulty = clamp(5 + rawDifficulty, 0, 10);
-  const durationPct = clamp((duration / 22) * 100, 4, 100);
+  const durationPct = clamp((duration / 12) * 100, 4, 100);
   const difficultyPct = clamp(difficulty * 10, 4, 100);
   let difficultyLabel = 'Padrão';
   if (difficulty <= 3) difficultyLabel = 'Mais fácil para o bem';
   if (difficulty >= 7) difficultyLabel = 'Mais difícil para o bem';
   let durationLabel = 'Noite média';
-  if (duration <= 6) durationLabel = 'Noite rápida';
-  if (duration >= 13) durationLabel = 'Noite longa';
-  return { duration, difficulty, rawDifficulty, durationPct, difficultyPct, durationLabel, difficultyLabel };
+  if (duration <= 5) durationLabel = 'Noite rápida';
+  if (duration >= 9) durationLabel = 'Noite longa';
+  return { duration, firstNightSteps, otherNightSteps, conditionalSteps, difficulty, rawDifficulty, durationPct, difficultyPct, durationLabel, difficultyLabel };
 }
 
 function autoFillRoles() {
   const playerCount = Number(state.setup.playerCount);
   const all = rolesForScript(state.setup.scriptId);
-  const minions = rolesByTypeLocal(all, 'minion');
-  const includeBaron = state.setup.selectedRoleIds.includes('baron') || Math.random() < 0.28;
-  const pickedMinions = [];
-  if (includeBaron && getDistribution(playerCount, true).minion > 0) pickedMinions.push(roleById('baron'));
+  const includeBaron = Math.random() < 0.5;
   const target = getDistribution(playerCount, includeBaron);
-  const remainingMinions = minions.filter((role) => !pickedMinions.includes(role));
-  pickedMinions.push(...sampleMany(remainingMinions, target.minion - pickedMinions.length));
 
-  const picked = [
-    ...sampleMany(rolesByTypeLocal(all, 'townsfolk'), target.townsfolk),
-    ...sampleMany(rolesByTypeLocal(all, 'outsider'), target.outsider),
-    ...pickedMinions,
-    roleById('imp')
-  ].filter(Boolean);
+  const picked = [];
+  const townsfolkPool = rolesByTypeLocal(all, 'townsfolk');
+  const outsiderPool = rolesByTypeLocal(all, 'outsider');
+  const minionPool = rolesByTypeLocal(all, 'minion').filter((role) => role.id !== 'baron');
 
-  state.setup.selectedRoleIds = picked.map((role) => role.id);
+  picked.push(...sampleMany(townsfolkPool, target.townsfolk));
+  picked.push(...sampleMany(outsiderPool, target.outsider));
+
+  if (includeBaron && target.minion > 0) picked.push(roleById('baron'));
+  const remainingMinionsNeeded = Math.max(0, target.minion - picked.filter((role) => role?.type === 'minion').length);
+  picked.push(...sampleMany(minionPool, remainingMinionsNeeded));
+  picked.push(roleById('imp'));
+
+  state.setup.selectedRoleIds = shuffle(picked.filter(Boolean).map((role) => role.id));
   saveState();
   render();
 }
@@ -285,6 +304,14 @@ function startGame() {
     bluffs: createDemonBluffs(selectedIds),
     nightNumber: 1,
     night: null,
+    status: {
+      poisonedId: null,
+      poisonedNight: null,
+      protectedId: null,
+      butlerId: null,
+      butlerMasterId: null,
+      lastNightDeaths: []
+    },
     day: {
       number: 1,
       lastExecutedId: null,
@@ -327,6 +354,10 @@ function nextReveal() {
 
 function startNight(number = state.game.nightNumber) {
   state.game.nightNumber = number;
+  state.game.status = state.game.status || {};
+  state.game.status.poisonedId = null;
+  state.game.status.poisonedNight = null;
+  state.game.status.protectedId = null;
   const executed = findPlayer(state.game.day?.lastExecutedId);
   const executedRavenkeeperId = executed?.currentRoleId === 'ravenkeeper' ? executed.id : null;
   state.game.night = {
@@ -360,6 +391,7 @@ function buildNightSteps(nightNumber) {
     const candidateRoleId = player.fakeRoleId || player.currentRoleId;
     const role = roleById(candidateRoleId);
     const order = nightNumber === 1 ? role?.nightOrderFirst : role?.nightOrderOther;
+    if (role?.action === 'ravenkeeper') return;
     if (order !== null && order !== undefined && role?.action) {
       roleSteps.push({
         id: `${role.action}-${player.id}-${nightNumber}`,
@@ -394,10 +426,21 @@ function currentStep() {
   return state.game?.night?.steps?.[state.game.night.currentStep] || null;
 }
 
+function isStepSkippedByDeath(step) {
+  if (!step?.actorId) return false;
+  const actor = findPlayer(step.actorId);
+  const pendingDeath = state.game?.night?.deadTonightIds?.includes(step.actorId);
+  return !actor || !actor.alive || pendingDeath;
+}
+
 function nextStep() {
   const night = state.game.night;
-  if (night.currentStep < night.steps.length - 1) {
-    night.currentStep += 1;
+  let nextIndex = night.currentStep + 1;
+  while (nextIndex < night.steps.length && isStepSkippedByDeath(night.steps[nextIndex])) {
+    nextIndex += 1;
+  }
+  if (nextIndex < night.steps.length) {
+    night.currentStep = nextIndex;
     saveState();
     render();
   } else {
@@ -420,8 +463,11 @@ function finishNight() {
     const player = findPlayer(id);
     if (player) player.alive = false;
   });
+  state.game.status = state.game.status || {};
+  state.game.status.lastNightDeaths = deaths;
   const names = deaths.map((id) => playerName(findPlayer(id))).join(', ');
   state.game.log.push(`Noite ${state.game.night.number} terminou.${names ? ` Mortes: ${names}.` : ' Sem mortes noturnas.'}`);
+  resolveDemonBackup('morte durante a noite');
   state.game.day = {
     number: state.game.night.number,
     lastExecutedId: null,
@@ -477,6 +523,7 @@ function executeAutomaticAction(action) {
   const step = currentStep();
   if (!step) return;
   if (state.game.night.results[step.id]) return;
+  if (isStepSkippedByDeath(step)) return markResult(step.id, 'Etapa pulada: jogador morto.');
 
   switch (action) {
     case 'minion-info': return actionMinionInfo(step);
@@ -524,8 +571,11 @@ function actionPoisoner(step) {
   const targetId = getField('target');
   if (!assertChoice(targetId)) return;
   state.game.night.poisonedId = targetId;
+  state.game.status = state.game.status || {};
+  state.game.status.poisonedId = targetId;
+  state.game.status.poisonedNight = state.game.night.number;
   const target = findPlayer(targetId);
-  markResult(step.id, `${escapeHTML(playerName(target))} está envenenado até esta noite terminar.`);
+  markResult(step.id, `${escapeHTML(playerName(target))} foi envenenado.`);
 }
 
 function actionSpy(step) {
@@ -596,7 +646,7 @@ function actionChef(step) {
 
 function registersEvil(player) {
   if (isPlayerEvil(player)) return true;
-  if (player.currentRoleId === 'recluse') return Math.random() < 0.5;
+  if (player.currentRoleId === 'recluse' && !isDrunkLike(player)) return Math.random() < 0.5;
   return false;
 }
 
@@ -644,14 +694,20 @@ function actionButler(step) {
   if (!assertChoice(masterId, 'Escolha o mestre do Mordomo.')) return;
   const actor = findPlayer(step.actorId);
   actor.masterId = masterId;
-  markResult(step.id, `${escapeHTML(playerName(actor))} escolheu <strong>${escapeHTML(playerName(findPlayer(masterId)))}</strong> como mestre para o próximo dia.`);
+  state.game.status = state.game.status || {};
+  state.game.status.butlerId = actor.id;
+  state.game.status.butlerMasterId = masterId;
+  markResult(step.id, `${escapeHTML(playerName(actor))}: mestre escolhido — <strong>${escapeHTML(playerName(findPlayer(masterId)))}</strong>.`);
 }
 
 function actionMonk(step) {
   const targetId = getField('target');
   if (!assertChoice(targetId, 'Escolha quem o Monge vai proteger.')) return;
-  state.game.night.protectedId = targetId;
-  markResult(step.id, `${escapeHTML(playerName(findPlayer(targetId)))} está protegido do demônio nesta noite.`);
+  const actor = findPlayer(step.actorId);
+  if (!isDrunkLike(actor)) state.game.night.protectedId = targetId;
+  state.game.status = state.game.status || {};
+  state.game.status.protectedId = targetId;
+  markResult(step.id, `${escapeHTML(playerName(findPlayer(targetId)))} foi escolhido para proteção.`);
 }
 
 function actionImp(step) {
@@ -662,13 +718,28 @@ function actionImp(step) {
   let killed = target;
   let note = '';
 
-  if (target.currentRoleId === 'soldier') {
+  if (isDrunkLike(demon)) {
+    markResult(step.id, 'O ataque não gerou morte.');
+    return;
+  }
+
+  if (target.id === demon.id) {
+    state.game.night.deadTonightIds = [...new Set([...state.game.night.deadTonightIds, demon.id])];
+    const newDemon = passDemonAfterSelfKill(demon);
+    note = newDemon
+      ? `${playerName(demon)} atacou a si mesmo. ${playerName(newDemon)} virou Imp.`
+      : `${playerName(demon)} atacou a si mesmo. Não havia minion vivo para receber o demônio.`;
+    markResult(step.id, note);
+    return;
+  }
+
+  if (target.currentRoleId === 'soldier' && !isDrunkLike(target)) {
     killed = null;
-    note = `${playerName(target)} é Soldado e sobreviveu ao ataque do demônio.`;
+    note = `${playerName(target)} foi atacado, mas sobreviveu.`;
   } else if (state.game.night.protectedId === target.id) {
     killed = null;
-    note = `${playerName(target)} estava protegido pelo Monge e não morreu.`;
-  } else if (target.currentRoleId === 'mayor') {
+    note = `${playerName(target)} foi atacado, mas estava protegido.`;
+  } else if (target.currentRoleId === 'mayor' && !isDrunkLike(target)) {
     const redirectOptions = livingPlayers().filter((player) => player.id !== target.id && player.id !== demon.id);
     if (redirectOptions.length && Math.random() < 0.5) {
       killed = sample(redirectOptions);
@@ -694,7 +765,9 @@ function passDemonAfterSelfKill(oldDemon) {
     minion.trueRoleId = 'imp';
     minion.fakeRoleId = null;
     state.game.log.push(`${playerName(minion)} virou Imp depois da morte do demônio.`);
+    return minion;
   }
+  return null;
 }
 
 function actionRavenkeeper(step) {
@@ -728,7 +801,7 @@ function resolveDemonBackup(reason) {
   const aliveDemons = livingPlayers().filter((player) => trueRole(player)?.type === 'demon');
   if (aliveDemons.length) return;
   const scarlet = livingPlayers().find((player) => player.currentRoleId === 'scarlet_woman');
-  if (scarlet && livingPlayers().length >= 5) {
+  if (scarlet && livingPlayers().length >= 5 && !isDrunkLike(scarlet)) {
     scarlet.previousRoleId = 'scarlet_woman';
     scarlet.currentRoleId = 'imp';
     scarlet.trueRoleId = 'imp';
@@ -749,6 +822,7 @@ function endGame(winner, reason) {
 
 function checkGameEnd() {
   if (!state.game || state.game.ended) return true;
+  resolveDemonBackup('checagem de fim de jogo');
   const aliveDemons = livingPlayers().filter((player) => trueRole(player)?.type === 'demon');
   if (aliveDemons.length === 0) {
     endGame('Bem venceu', 'O demônio morreu.');
@@ -776,7 +850,7 @@ function updateDayFromForm() {
     const executed = findPlayer(executedId);
     if (executed) {
       executed.alive = false;
-      if (executed.currentRoleId === 'saint') {
+      if (executed.currentRoleId === 'saint' && !isDrunkLike(executed)) {
         warnings.push('O Anjo/Santo foi executado: o mal vence.');
         state.game.day.warnings = warnings;
         endGame('Mal venceu', 'O Anjo/Santo foi executado.');
@@ -785,6 +859,7 @@ function updateDayFromForm() {
     }
   }
   state.game.day.warnings = warnings;
+  resolveDemonBackup('morte/execução durante o dia');
   if (checkGameEnd()) return;
   saveState();
 }
@@ -916,7 +991,7 @@ function renderSetup() {
       <section class="section-title"><h3>Barras da partida</h3></section>
       <section class="metrics">
         <div class="metric">
-          <div class="metric-head"><strong>Duração da noite</strong><span>${metric.duration} etapas · ${metric.durationLabel}</span></div>
+          <div class="metric-head"><strong>Duração da noite</strong><span>Noite 1: ${metric.firstNightSteps} · próximas: ${metric.otherNightSteps}${metric.conditionalSteps ? ' + condicional' : ''}</span></div>
           <div class="bar"><div class="bar-fill" style="--value:${metric.durationPct}%"></div></div>
         </div>
         <div class="metric">
@@ -975,6 +1050,24 @@ function renderReveal() {
   `;
 }
 
+function renderHostStatusCard() {
+  const status = state.game?.status || {};
+  const poisoned = findPlayer(status.poisonedId);
+  const butler = findPlayer(status.butlerId);
+  const master = findPlayer(status.butlerMasterId);
+  const protectedPlayer = findPlayer(status.protectedId);
+  const nightDeaths = (status.lastNightDeaths || []).map((id) => playerName(findPlayer(id))).filter(Boolean);
+  return `
+    <section class="card host-status" style="margin-top: 12px;">
+      <p class="kicker">Painel do host</p>
+      <p><strong>Envenenado:</strong> ${poisoned ? escapeHTML(playerName(poisoned)) : 'ninguém'}</p>
+      <p><strong>Mordomo:</strong> ${butler && master ? `${escapeHTML(playerName(butler))} serve ${escapeHTML(playerName(master))}` : 'sem mestre definido'}</p>
+      <p><strong>Protegido nesta noite:</strong> ${protectedPlayer ? escapeHTML(playerName(protectedPlayer)) : 'ninguém'}</p>
+      <p><strong>Mortes da última noite:</strong> ${nightDeaths.length ? escapeHTML(nightDeaths.join(', ')) : 'nenhuma'}</p>
+    </section>
+  `;
+}
+
 function renderGrimoire() {
   const game = state.game;
   return `
@@ -997,6 +1090,7 @@ function renderGrimoire() {
         <p><strong>Red herring da Vidente:</strong> ${escapeHTML(playerName(findPlayer(game.redHerringId)) || 'nenhum')}</p>
         <p><strong>Bluffs do demônio:</strong> ${game.bluffs.map(roleById).filter(Boolean).map((role) => role.name).join(', ') || 'nenhum'}</p>
       </section>
+      ${renderHostStatusCard()}
       <section class="sticky-actions">
         <button class="primary-btn" data-action="start-night">Começar noite 1</button>
         <button class="ghost-btn" data-action="copy-grimoire">Copiar grimório JSON</button>
@@ -1036,6 +1130,7 @@ function renderNight() {
 
 function renderStepBody(step) {
   if (!step) return '<p>Nenhuma ação nesta noite.</p>';
+  if (isStepSkippedByDeath(step)) return '<p>Esta pessoa já está morta ou morrerá ao amanhecer. Etapa pulada.</p>';
   if (state.game.mode === 'manual') return renderManualStep(step);
   return renderAutomaticStep(step);
 }
@@ -1065,7 +1160,7 @@ function renderAutomaticStep(step) {
   if (step.id === 'minion-info') return autoButton('minion-info', 'Revelar informação dos minions');
   if (step.id === 'demon-info') return autoButton('demon-info', 'Revelar informação do demônio');
 
-  const actorLine = actor ? `<p>Passe o celular para: <strong>${escapeHTML(playerName(actor))}</strong>${actor.fakeRoleId ? `, que acredita ser <strong>${escapeHTML(role.name)}</strong>` : ''}.</p>` : '';
+  const actorLine = actor ? `<p class="actor-line"><strong>${escapeHTML(playerName(actor))}</strong>${actor.fakeRoleId ? ` · ${escapeHTML(role.name)}` : ''}</p>` : '';
 
   if (step.action === 'poisoner') {
     return `${actorLine}<div class="action-box"><label>Quem será envenenado?</label>${playerSelect('target', { livingOnly: true })}${autoButton('poisoner', 'Confirmar veneno')}</div>`;
@@ -1109,6 +1204,7 @@ function renderDay() {
       <section class="card">
         <p>Durante o dia, o host controla conversa, nomeações, Caçador, Virgem e Anjo/Santo. Escolha quem foi executado e vá direto para a próxima noite.</p>
       </section>
+      ${renderHostStatusCard()}
       <section class="section-title"><h3>Vivos/mortos</h3></section>
       <section class="grid">
         ${allPlayers().map((player) => `
