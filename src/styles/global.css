@@ -1,0 +1,638 @@
+:root {
+  color-scheme: dark;
+  --bg: #13070c;
+  --bg-soft: #1f0d14;
+  --panel: rgba(37, 16, 24, 0.88);
+  --panel-strong: #2b111b;
+  --line: rgba(229, 190, 119, 0.16);
+  --line-strong: rgba(229, 190, 119, 0.34);
+  --text: #fff8ed;
+  --muted: #c9aeb1;
+  --gold: #d8b46a;
+  --gold-soft: rgba(216, 180, 106, 0.16);
+  --red: #9e2440;
+  --red-soft: rgba(158, 36, 64, 0.24);
+  --green: #49765a;
+  --purple: #6955a3;
+  --blue: #447694;
+  --shadow: 0 20px 70px rgba(0, 0, 0, 0.42);
+  --radius: 22px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--bg);
+}
+
+body {
+  min-height: 100svh;
+  margin: 0;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(158, 36, 64, 0.45), transparent 36rem),
+    radial-gradient(circle at bottom right, rgba(216, 180, 106, 0.18), transparent 28rem),
+    linear-gradient(160deg, #0b0407 0%, var(--bg) 48%, #1d0810 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.14;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: linear-gradient(to bottom, black, transparent 88%);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  color: inherit;
+}
+
+.appShell {
+  width: min(100%, 720px);
+  margin: 0 auto;
+  min-height: 100svh;
+  padding: max(18px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom));
+}
+
+.screen {
+  display: none;
+  animation: rise 220ms ease both;
+}
+
+.screen.active {
+  display: block;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.homeScreen {
+  min-height: calc(100svh - 48px);
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
+}
+
+.homeScreen.active {
+  display: flex;
+}
+
+.brandMark {
+  width: 86px;
+  height: 86px;
+  border: 1px solid var(--line-strong);
+  border-radius: 28px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, rgba(216, 180, 106, 0.14), rgba(158, 36, 64, 0.20));
+  box-shadow: var(--shadow);
+}
+
+.brandMark span {
+  width: 52px;
+  height: 52px;
+  border: 4px solid var(--gold);
+  border-radius: 999px;
+  position: relative;
+}
+
+.brandMark span::before,
+.brandMark span::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 7px;
+  border-radius: 999px;
+  background: var(--gold);
+  transform-origin: center top;
+}
+
+.brandMark span::before {
+  height: 21px;
+  transform: rotate(22deg) translate(-50%, -3px);
+}
+
+.brandMark span::after {
+  height: 15px;
+  transform: rotate(138deg) translate(-50%, -3px);
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  font-size: clamp(2.6rem, 12vw, 4.8rem);
+  line-height: 0.92;
+  margin-bottom: 0;
+  letter-spacing: -0.08em;
+}
+
+h2 {
+  font-size: 1.55rem;
+  margin: 0;
+  letter-spacing: -0.04em;
+}
+
+h3 {
+  margin-bottom: 6px;
+  font-size: 1.18rem;
+  letter-spacing: -0.035em;
+}
+
+h4 {
+  margin-bottom: 7px;
+  font-size: 1rem;
+}
+
+.lead {
+  color: var(--muted);
+  font-size: 1.02rem;
+  line-height: 1.55;
+  max-width: 32rem;
+}
+
+.homeActions {
+  display: grid;
+  gap: 12px;
+  margin: 8px 0 2px;
+}
+
+.primaryAction,
+.secondaryAction,
+.presetCard,
+.roleToggle,
+.ghost,
+.miniButton,
+.backButton {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.primaryAction,
+.secondaryAction {
+  min-height: 94px;
+  border-radius: 26px;
+  text-align: left;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+.primaryAction {
+  background: linear-gradient(135deg, #a92745, #5e1325);
+}
+
+.secondaryAction {
+  background: linear-gradient(135deg, rgba(216, 180, 106, 0.20), rgba(255, 255, 255, 0.04));
+}
+
+.primaryAction strong,
+.secondaryAction strong {
+  font-size: 1.32rem;
+}
+
+.primaryAction span,
+.secondaryAction span {
+  color: rgba(255, 248, 237, 0.78);
+}
+
+.panel,
+.noteCard,
+.roleCard,
+.meterCard,
+.presetCard,
+.guideNotice {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(14px);
+}
+
+.panel,
+.noteCard,
+.guideNotice {
+  padding: 16px;
+}
+
+.noteCard p,
+.panel p,
+.guideNotice {
+  color: var(--muted);
+  line-height: 1.5;
+  margin-bottom: 0;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0 18px;
+}
+
+.topBar.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding-top: max(8px, env(safe-area-inset-top));
+  background: linear-gradient(to bottom, rgba(19, 7, 12, 0.95) 70%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.topBar > div {
+  flex: 1;
+}
+
+.backButton,
+.miniButton,
+.ghost {
+  min-height: 42px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.backButton {
+  width: 42px;
+  display: grid;
+  place-items: center;
+  font-size: 1.3rem;
+}
+
+.miniButton,
+.ghost {
+  padding: 0 14px;
+  font-weight: 800;
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.field input,
+.field select,
+textarea {
+  width: 100%;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.07);
+  padding: 13px 14px;
+  outline: none;
+}
+
+.field input:focus,
+.field select:focus,
+textarea:focus {
+  border-color: var(--gold);
+}
+
+.filterRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.statChips,
+.metaLine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.chip,
+.pill {
+  border: 1px solid var(--line);
+  color: rgba(255, 248, 237, 0.88);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  padding: 7px 10px;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.pill {
+  white-space: nowrap;
+  color: var(--gold);
+  background: var(--gold-soft);
+}
+
+.team.townsfolk { background: rgba(73, 118, 90, 0.24); }
+.team.outsider { background: rgba(68, 118, 148, 0.24); }
+.team.minion { background: rgba(105, 85, 163, 0.24); }
+.team.demon { background: rgba(158, 36, 64, 0.28); }
+
+.guideNotice {
+  margin: 12px 0 16px;
+  font-size: 0.88rem;
+}
+
+.roleGroup {
+  margin: 16px 0 20px;
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.groupHeader h3 {
+  margin: 0;
+}
+
+.groupHeader span {
+  color: var(--gold);
+  font-weight: 900;
+}
+
+.roleList,
+.toggleGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.roleCard {
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.roleCard p {
+  color: var(--muted);
+  line-height: 1.45;
+  margin-bottom: 0;
+}
+
+.roleCard.townsfolk { border-left: 4px solid var(--green); }
+.roleCard.outsider { border-left: 4px solid var(--blue); }
+.roleCard.minion { border-left: 4px solid var(--purple); }
+.roleCard.demon { border-left: 4px solid var(--red); }
+.roleCard.traveller { border-left: 4px solid var(--gold); }
+.roleCard.fabled,
+.roleCard.loric { border-left: 4px solid #8a8174; }
+
+.localIntro {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.rangeField {
+  display: grid;
+  gap: 8px;
+  color: var(--gold);
+  font-weight: 900;
+}
+
+.rangeField input {
+  accent-color: var(--gold);
+}
+
+.presetGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.presetCard {
+  text-align: left;
+  padding: 15px;
+  display: grid;
+  gap: 6px;
+  color: var(--text);
+}
+
+.presetCard strong {
+  font-size: 1.08rem;
+}
+
+.presetCard small,
+.presetCard p {
+  color: var(--muted);
+}
+
+.presetCard p {
+  margin: 2px 0 0;
+  line-height: 1.4;
+}
+
+.presetCard.selected {
+  border-color: var(--gold);
+  background: linear-gradient(135deg, rgba(216, 180, 106, 0.18), rgba(158, 36, 64, 0.12));
+}
+
+.metersPanel,
+.pickerPanel,
+.finalPanel {
+  margin-bottom: 14px;
+}
+
+.meterGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.meterCard {
+  padding: 14px;
+}
+
+.meterTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.meterTop span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.meterTop strong {
+  color: var(--gold);
+}
+
+.meter {
+  height: 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  margin-bottom: 10px;
+}
+
+.meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--gold), #b33a54);
+}
+
+.meterCard p {
+  color: var(--muted);
+  margin-bottom: 0;
+  line-height: 1.45;
+  font-size: 0.88rem;
+}
+
+#balanceDetails {
+  margin-top: 12px;
+}
+
+.rolePickerHeader,
+.summaryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.quickActions {
+  display: flex;
+  gap: 7px;
+}
+
+.toggleGrid {
+  grid-template-columns: 1fr;
+}
+
+.roleToggle {
+  text-align: left;
+  color: var(--text);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.055);
+  border-radius: 18px;
+  padding: 13px;
+  display: grid;
+  gap: 5px;
+}
+
+.roleToggle small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.roleToggle.active {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+
+.roleToggle.active.townsfolk { box-shadow: inset 4px 0 0 var(--green); }
+.roleToggle.active.outsider { box-shadow: inset 4px 0 0 var(--blue); }
+.roleToggle.active.minion { box-shadow: inset 4px 0 0 var(--purple); }
+.roleToggle.active.demon { box-shadow: inset 4px 0 0 var(--red); }
+
+.summaryBlock {
+  border-top: 1px solid var(--line);
+  padding: 12px 0;
+}
+
+.summaryBlock h4 {
+  margin-bottom: 6px;
+  color: var(--gold);
+}
+
+.summaryBlock p {
+  color: var(--text);
+  margin: 0;
+}
+
+.empty {
+  color: var(--muted);
+  border: 1px dashed var(--line);
+  border-radius: 18px;
+  padding: 18px;
+  text-align: center;
+}
+
+textarea.hidden {
+  display: none;
+}
+
+textarea {
+  margin-top: 12px;
+  min-height: 180px;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  transform: translate(-50%, 18px);
+  opacity: 0;
+  pointer-events: none;
+  background: #fff8ed;
+  color: #241016;
+  border-radius: 999px;
+  padding: 11px 15px;
+  font-weight: 900;
+  box-shadow: var(--shadow);
+  transition: 180ms ease;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@media (min-width: 560px) {
+  .homeActions,
+  .presetGrid,
+  .meterGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .toggleGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

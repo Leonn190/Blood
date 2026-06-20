@@ -1,0 +1,116 @@
+---
+import '../styles/global.css';
+---
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#16070d" />
+    <meta name="description" content="MVP mobile para montar partida local e consultar guia de roles de Blood on the Clocktower." />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Clocktower Local</title>
+  </head>
+  <body data-view="home">
+    <main class="appShell">
+      <section class="screen active homeScreen" data-screen="home" aria-labelledby="homeTitle">
+        <div class="brandMark" aria-hidden="true">
+          <span></span>
+        </div>
+        <p class="eyebrow">MVP mobile</p>
+        <h1 id="homeTitle">Clocktower Local</h1>
+        <p class="lead">Guia rápido de roles e montagem local de partida para o host escolher a seleção e as subseleções.</p>
+
+        <div class="homeActions" aria-label="Ações principais">
+          <button class="primaryAction" data-go="local">
+            <strong>Partida Local</strong>
+            <span>Escolher seleção, roles e ver barras</span>
+          </button>
+          <button class="secondaryAction" data-go="guide">
+            <strong>Guia</strong>
+            <span>Ver roles cadastradas e resumo</span>
+          </button>
+        </div>
+
+        <div class="statChips" id="homeStats"></div>
+
+        <div class="noteCard">
+          <strong>Primeira versão simples</strong>
+          <p>Sem login, sem online, sem banco. Tudo roda no celular e salva a última montagem no navegador.</p>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="guide" aria-labelledby="guideTitle">
+        <header class="topBar">
+          <button class="backButton" data-go="home" aria-label="Voltar">←</button>
+          <div>
+            <p class="eyebrow">Consulta</p>
+            <h2 id="guideTitle">Guia de roles</h2>
+          </div>
+          <span class="pill" id="guideCount">0 roles</span>
+        </header>
+
+        <div class="panel" id="guideControls"></div>
+        <div class="guideNotice">
+          Resumos curtos e originais para uso durante a partida. Para regra fina, confira o almanac oficial depois.
+        </div>
+        <div id="guideList"></div>
+      </section>
+
+      <section class="screen" data-screen="local" aria-labelledby="localTitle">
+        <header class="topBar sticky">
+          <button class="backButton" data-go="home" aria-label="Voltar">←</button>
+          <div>
+            <p class="eyebrow">Host</p>
+            <h2 id="localTitle">Partida Local</h2>
+          </div>
+          <button class="miniButton" id="copySelection">Copiar</button>
+        </header>
+
+        <section class="panel localIntro">
+          <div>
+            <p class="eyebrow">Seleção</p>
+            <h3>Escolha o conjunto de roles</h3>
+            <p>Depois ligue/desligue as roles da subseleção. As barras atualizam sozinhas.</p>
+          </div>
+          <label class="rangeField">
+            <span id="playerCountValue">10 jogadores</span>
+            <input id="playerCount" type="range" min="5" max="20" value="10" />
+          </label>
+        </section>
+
+        <div class="presetGrid" id="presetCards"></div>
+
+        <section class="panel metersPanel">
+          <div class="meterGrid" id="meters"></div>
+          <div class="statChips" id="balanceDetails"></div>
+        </section>
+
+        <section class="panel pickerPanel">
+          <div class="rolePickerHeader" id="rolePickerHeader"></div>
+          <div id="rolePicker"></div>
+        </section>
+
+        <section class="panel finalPanel">
+          <div class="summaryHeader">
+            <div>
+              <p class="eyebrow">Resumo final</p>
+              <h3>Roles da partida</h3>
+            </div>
+            <span class="pill" id="selectedCount">0 selecionadas</span>
+          </div>
+          <div id="selectionSummary"></div>
+          <textarea id="exportOutput" class="hidden" readonly rows="10"></textarea>
+        </section>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+      import { initApp } from '../scripts/app.js';
+      initApp();
+    </script>
+  </body>
+</html>

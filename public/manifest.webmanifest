@@ -1,0 +1,9 @@
+{
+  "name": "Clocktower Local",
+  "short_name": "Clocktower",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#16070d",
+  "theme_color": "#16070d",
+  "icons": []
+}
