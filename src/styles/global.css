@@ -296,10 +296,10 @@ button:disabled {
   white-space: nowrap;
 }
 
-.type-pill.townsfolk { color: #9ed6ff; border-color: rgba(92, 169, 255, 0.28); background: rgba(92, 169, 255, 0.09); }
-.type-pill.outsider { color: #dac4ff; border-color: rgba(183, 148, 244, 0.28); background: rgba(183, 148, 244, 0.09); }
-.type-pill.minion { color: #ffb1b1; border-color: rgba(207, 75, 75, 0.32); background: rgba(207, 75, 75, 0.1); }
-.type-pill.demon { color: #ff7676; border-color: rgba(207, 75, 75, 0.48); background: rgba(207, 75, 75, 0.18); }
+.type-pill.townsfolk { color: #9ed6ff; border-color: rgba(92, 169, 255, 0.45); background: rgba(92, 169, 255, 0.13); }
+.type-pill.outsider { color: #ffe188; border-color: rgba(240, 195, 106, 0.46); background: rgba(240, 195, 106, 0.14); }
+.type-pill.minion { color: #d7b6ff; border-color: rgba(183, 148, 244, 0.48); background: rgba(183, 148, 244, 0.15); }
+.type-pill.demon { color: #ff7676; border-color: rgba(207, 75, 75, 0.58); background: rgba(207, 75, 75, 0.2); }
 
 .tags {
   display: flex;

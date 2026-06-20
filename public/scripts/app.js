@@ -9,7 +9,7 @@ import {
   isEvilRole
 } from './roles.js';
 
-const STORAGE_KEY = 'clocktower-classico-v2';
+const STORAGE_KEY = 'clocktower-classico-v3';
 const app = document.querySelector('#app');
 
 const initialState = {
@@ -27,6 +27,7 @@ const initialState = {
 };
 
 let state = loadState();
+let lastRenderedView = null;
 
 function loadState() {
   try {
@@ -151,8 +152,7 @@ function roleCard(role, options = {}) {
             </div>
             ${rolePill(role)}
           </div>
-          ${tagsHTML(role.tags)}
-          <p class="hint">Noite: +${role.duration} tempo · Dificuldade para o bem: ${role.difficulty > 0 ? '+' : ''}${role.difficulty}</p>
+          <p class="hint">Noite: ${role.duration} etapa${role.duration === 1 ? '' : 's'} · Dificuldade para o bem: ${role.difficulty > 0 ? '+' : ''}${role.difficulty}</p>
         </div>
       </div>
     </article>
@@ -196,23 +196,24 @@ function setupValidation() {
 function metricInfo() {
   const roles = selectedRoles();
   const duration = roles.reduce((sum, role) => sum + Number(role.duration || 0), 0);
-  const difficulty = roles.reduce((sum, role) => sum + Number(role.difficulty || 0), 0);
-  const durationPct = clamp((duration / 28) * 100, 4, 100);
-  const difficultyPct = clamp(((difficulty + 16) / 32) * 100, 4, 100);
-  let difficultyLabel = 'Equilibrado';
-  if (difficulty <= -5) difficultyLabel = 'Mais fácil para o bem';
-  if (difficulty >= 5) difficultyLabel = 'Mais difícil para o bem';
+  const rawDifficulty = roles.reduce((sum, role) => sum + Number(role.difficulty || 0), 0);
+  const difficulty = clamp(5 + rawDifficulty, 0, 10);
+  const durationPct = clamp((duration / 22) * 100, 4, 100);
+  const difficultyPct = clamp(difficulty * 10, 4, 100);
+  let difficultyLabel = 'Padrão';
+  if (difficulty <= 3) difficultyLabel = 'Mais fácil para o bem';
+  if (difficulty >= 7) difficultyLabel = 'Mais difícil para o bem';
   let durationLabel = 'Noite média';
-  if (duration <= 7) durationLabel = 'Noite rápida';
-  if (duration >= 16) durationLabel = 'Noite longa';
-  return { duration, difficulty, durationPct, difficultyPct, durationLabel, difficultyLabel };
+  if (duration <= 6) durationLabel = 'Noite rápida';
+  if (duration >= 13) durationLabel = 'Noite longa';
+  return { duration, difficulty, rawDifficulty, durationPct, difficultyPct, durationLabel, difficultyLabel };
 }
 
 function autoFillRoles() {
   const playerCount = Number(state.setup.playerCount);
   const all = rolesForScript(state.setup.scriptId);
   const minions = rolesByTypeLocal(all, 'minion');
-  const includeBaron = Math.random() < 0.28;
+  const includeBaron = state.setup.selectedRoleIds.includes('baron') || Math.random() < 0.28;
   const pickedMinions = [];
   if (includeBaron && getDistribution(playerCount, true).minion > 0) pickedMinions.push(roleById('baron'));
   const target = getDistribution(playerCount, includeBaron);
@@ -326,6 +327,8 @@ function nextReveal() {
 
 function startNight(number = state.game.nightNumber) {
   state.game.nightNumber = number;
+  const executed = findPlayer(state.game.day?.lastExecutedId);
+  const executedRavenkeeperId = executed?.currentRoleId === 'ravenkeeper' ? executed.id : null;
   state.game.night = {
     number,
     currentStep: 0,
@@ -334,7 +337,7 @@ function startNight(number = state.game.nightNumber) {
     poisonedId: null,
     protectedId: null,
     deadTonightIds: [],
-    pendingRavenkeeperId: null,
+    pendingRavenkeeperId: executedRavenkeeperId,
     startedAt: Date.now()
   };
   state.game.log.push(`Noite ${number} começou.`);
@@ -353,6 +356,7 @@ function buildNightSteps(nightNumber) {
 
   const roleSteps = [];
   players.forEach((player) => {
+    if (!player.alive) return;
     const candidateRoleId = player.fakeRoleId || player.currentRoleId;
     const role = roleById(candidateRoleId);
     const order = nightNumber === 1 ? role?.nightOrderFirst : role?.nightOrderOther;
@@ -369,7 +373,9 @@ function buildNightSteps(nightNumber) {
     }
   });
 
-  if (nightNumber > 1 && players.some((p) => p.currentRoleId === 'ravenkeeper')) {
+  const executed = findPlayer(state.game.day?.lastExecutedId);
+  const ravenkeeperMightAct = players.some((p) => p.alive && p.currentRoleId === 'ravenkeeper') || executed?.currentRoleId === 'ravenkeeper';
+  if (nightNumber > 1 && ravenkeeperMightAct) {
     roleSteps.push({
       id: `ravenkeeper-conditional-${nightNumber}`,
       kind: 'conditional',
@@ -422,7 +428,7 @@ function finishNight() {
     lastDayDeaths: [],
     warnings: []
   };
-  resolveDemonBackup('night-end');
+  if (checkGameEnd()) return;
   saveState();
   go('day');
 }
@@ -470,6 +476,7 @@ function assertChoice(value, message = 'Escolha uma opção antes.') {
 function executeAutomaticAction(action) {
   const step = currentStep();
   if (!step) return;
+  if (state.game.night.results[step.id]) return;
 
   switch (action) {
     case 'minion-info': return actionMinionInfo(step);
@@ -495,7 +502,7 @@ function actionMinionInfo(step) {
   const minions = livingPlayers().filter((player) => trueRole(player)?.type === 'minion');
   const demons = livingPlayers().filter((player) => trueRole(player)?.type === 'demon');
   const html = `
-    <strong>Mostre aos minions:</strong><br>
+    <strong>Informação dos minions</strong><br>
     Demônio: ${demons.map(playerName).join(', ') || 'nenhum'}<br>
     Minions em jogo: ${minions.map((p) => `${playerName(p)} (${trueRole(p).name})`).join(', ') || 'nenhum'}
   `;
@@ -506,7 +513,7 @@ function actionDemonInfo(step) {
   const minions = livingPlayers().filter((player) => trueRole(player)?.type === 'minion');
   const bluffs = state.game.bluffs.map(roleById).filter(Boolean).map((role) => role.name).join(', ');
   const html = `
-    <strong>Mostre ao demônio:</strong><br>
+    <strong>Informação do demônio</strong><br>
     Minions: ${minions.map(playerName).join(', ') || 'nenhum'}<br>
     Bluffs seguros: ${bluffs || 'sem bluffs disponíveis'}
   `;
@@ -539,14 +546,14 @@ function actionWasherwoman(step) {
     pair = sampleMany(livingPlayers().filter((player) => player.id !== actor.id), 2);
   }
   pair = shuffle(pair.filter(Boolean));
-  markResult(step.id, `Diga: <strong>${pair.map(playerName).join(' ou ')}</strong> é <strong>${shownRole.name}</strong>.`);
+  markResult(step.id, `<strong>${pair.map(playerName).join(' ou ')}</strong><br>Role indicada: <strong>${shownRole.name}</strong>`);
 }
 
 function actionLibrarian(step) {
   const actor = findPlayer(step.actorId);
   const outsiders = livingPlayers().filter((player) => trueRole(player)?.type === 'outsider' && player.id !== actor.id);
   if (!outsiders.length && !isDrunkLike(actor)) {
-    markResult(step.id, 'Diga: <strong>não há Outsiders em jogo</strong>.');
+    markResult(step.id, '<strong>Não há Outsiders em jogo</strong>.');
     return;
   }
   let real = sample(outsiders);
@@ -557,7 +564,7 @@ function actionLibrarian(step) {
     pair = sampleMany(livingPlayers().filter((player) => player.id !== actor.id), 2);
   }
   pair = shuffle(pair.filter(Boolean));
-  markResult(step.id, `Diga: <strong>${pair.map(playerName).join(' ou ')}</strong> é <strong>${shownRole.name}</strong>.`);
+  markResult(step.id, `<strong>${pair.map(playerName).join(' ou ')}</strong><br>Role indicada: <strong>${shownRole.name}</strong>`);
 }
 
 function actionInvestigator(step) {
@@ -571,7 +578,7 @@ function actionInvestigator(step) {
     pair = sampleMany(livingPlayers().filter((player) => player.id !== actor.id), 2);
   }
   pair = shuffle(pair.filter(Boolean));
-  markResult(step.id, `Diga: <strong>${pair.map(playerName).join(' ou ')}</strong> é <strong>${shownRole.name}</strong>.`);
+  markResult(step.id, `<strong>${pair.map(playerName).join(' ou ')}</strong><br>Role indicada: <strong>${shownRole.name}</strong>`);
 }
 
 function actionChef(step) {
@@ -584,7 +591,7 @@ function actionChef(step) {
     if (registersEvil(a) && registersEvil(b)) count += 1;
   }
   if (isDrunkLike(actor)) count = Math.floor(Math.random() * 3);
-  markResult(step.id, `Diga ao Chef: <strong>${count}</strong>.`);
+  markResult(step.id, `Número do Chef: <strong>${count}</strong>.`);
 }
 
 function registersEvil(player) {
@@ -598,7 +605,7 @@ function actionEmpath(step) {
   const neighbors = closestAliveNeighbors(actor.id);
   let count = neighbors.filter(registersEvil).length;
   if (isDrunkLike(actor)) count = Math.floor(Math.random() * 3);
-  markResult(step.id, `Vizinhos vivos: ${neighbors.map(playerName).join(' e ') || 'sem vizinhos'}. Diga: <strong>${count}</strong>.`);
+  markResult(step.id, `Vizinhos vivos: ${neighbors.map(playerName).join(' e ') || 'sem vizinhos'}<br>Número do Empata: <strong>${count}</strong>.`);
 }
 
 function closestAliveNeighbors(playerId) {
@@ -672,7 +679,6 @@ function actionImp(step) {
   if (killed) {
     state.game.night.deadTonightIds = [...new Set([...state.game.night.deadTonightIds, killed.id])];
     if (killed.currentRoleId === 'ravenkeeper') state.game.night.pendingRavenkeeperId = killed.id;
-    if (killed.id === demon.id) passDemonAfterSelfKill(demon);
     note = note || `${playerName(killed)} morrerá ao amanhecer.`;
   }
 
@@ -703,19 +709,19 @@ function actionRavenkeeper(step) {
   const target = findPlayer(targetId);
   let role = trueRole(target);
   if (isDrunkLike(raven)) role = sample(ROLES);
-  markResult(step.id, `Diga ao Guardião dos Corvos: <strong>${escapeHTML(playerName(target))}</strong> é <strong>${escapeHTML(role.name)}</strong>.`);
+  markResult(step.id, `<strong>${escapeHTML(playerName(target))}</strong><br>Role: <strong>${escapeHTML(role.name)}</strong>.`);
 }
 
 function actionUndertaker(step) {
   const actor = findPlayer(step.actorId);
   const executed = findPlayer(state.game.day?.lastExecutedId);
   if (!executed) {
-    markResult(step.id, 'Ninguém foi executado no dia anterior. Diga isso ao Coveiro.');
+    markResult(step.id, 'Ninguém foi executado no dia anterior.');
     return;
   }
   let role = trueRole(executed);
   if (isDrunkLike(actor)) role = sample(ROLES);
-  markResult(step.id, `Diga ao Coveiro: <strong>${escapeHTML(playerName(executed))}</strong> era <strong>${escapeHTML(role.name)}</strong>.`);
+  markResult(step.id, `<strong>${escapeHTML(playerName(executed))}</strong><br>Era: <strong>${escapeHTML(role.name)}</strong>.`);
 }
 
 function resolveDemonBackup(reason) {
@@ -729,6 +735,31 @@ function resolveDemonBackup(reason) {
     scarlet.fakeRoleId = null;
     state.game.log.push(`${playerName(scarlet)} virou Imp pela habilidade da Mulher Escarlate (${reason}).`);
   }
+}
+
+
+function endGame(winner, reason) {
+  state.game.ended = true;
+  state.game.winner = winner;
+  state.game.endReason = reason;
+  state.game.log.push(`Fim de jogo: ${winner}. ${reason}`);
+  saveState();
+  go('end');
+}
+
+function checkGameEnd() {
+  if (!state.game || state.game.ended) return true;
+  const aliveDemons = livingPlayers().filter((player) => trueRole(player)?.type === 'demon');
+  if (aliveDemons.length === 0) {
+    endGame('Bem venceu', 'O demônio morreu.');
+    return true;
+  }
+  const livingGood = livingPlayers().filter((player) => !isPlayerEvil(player));
+  if (livingGood.length <= 2) {
+    endGame('Mal venceu', 'Restaram somente 2 pessoas do bem vivas.');
+    return true;
+  }
+  return false;
 }
 
 function updateDayFromForm() {
@@ -745,17 +776,22 @@ function updateDayFromForm() {
     const executed = findPlayer(executedId);
     if (executed) {
       executed.alive = false;
-      if (executed.currentRoleId === 'saint') warnings.push('O Santo foi executado: pela regra da role, o bem perde.');
-      if (executed.currentRoleId === 'imp') warnings.push('O Imp foi executado. Se houver Mulher Escarlate viva e 5+ vivos, ela vira Imp.');
+      if (executed.currentRoleId === 'saint') {
+        warnings.push('O Anjo/Santo foi executado: o mal vence.');
+        state.game.day.warnings = warnings;
+        endGame('Mal venceu', 'O Anjo/Santo foi executado.');
+        return;
+      }
     }
   }
   state.game.day.warnings = warnings;
-  resolveDemonBackup('day');
+  if (checkGameEnd()) return;
   saveState();
 }
 
 function startNextNightFromDay() {
   updateDayFromForm();
+  if (state.game.ended) return;
   state.game.nightNumber += 1;
   startNight(state.game.nightNumber);
 }
@@ -789,7 +825,7 @@ function renderGuide() {
   const search = state.guide.search.toLowerCase();
   const roles = rolesForScript('classic').filter((role) => {
     const matchesType = state.guide.type === 'all' || role.type === state.guide.type;
-    const blob = `${role.name} ${role.summary} ${role.tags.join(' ')}`.toLowerCase();
+    const blob = `${role.name} ${role.summary} ${TYPE_LABEL[role.type]}`.toLowerCase();
     return matchesType && blob.includes(search);
   });
 
@@ -825,11 +861,6 @@ function renderScriptSelect() {
               </div>
               <span class="pill">22 roles</span>
             </div>
-            <div class="tags">
-              <span class="tag">Clássico</span>
-              <span class="tag">Mobile</span>
-              <span class="tag">Automático/Manual</span>
-            </div>
           </article>
         `).join('')}
       </section>
@@ -842,7 +873,7 @@ function renderScriptSelect() {
 
 function renderSetup() {
   const validation = setupValidation();
-  const metrics = metricInfo();
+  const metric = metricInfo();
   const roles = rolesForScript(state.setup.scriptId);
   const grouped = TYPE_ORDER.map((type) => ({ type, roles: roles.filter((role) => role.type === type) }));
 
@@ -885,13 +916,13 @@ function renderSetup() {
       <section class="section-title"><h3>Barras da partida</h3></section>
       <section class="metrics">
         <div class="metric">
-          <div class="metric-head"><strong>Duração da noite</strong><span>${metrics.duration} pontos · ${metrics.durationLabel}</span></div>
-          <div class="bar"><div class="bar-fill" style="--value:${metrics.durationPct}%"></div></div>
+          <div class="metric-head"><strong>Duração da noite</strong><span>${metric.duration} etapas · ${metric.durationLabel}</span></div>
+          <div class="bar"><div class="bar-fill" style="--value:${metric.durationPct}%"></div></div>
         </div>
         <div class="metric">
-          <div class="metric-head"><strong>Dificuldade para o bem</strong><span>${metrics.difficulty > 0 ? '+' : ''}${metrics.difficulty} · ${metrics.difficultyLabel}</span></div>
-          <div class="bar"><div class="bar-fill" style="--value:${metrics.difficultyPct}%"></div></div>
-          <p class="hint">Townsfolk tendem a ser negativos. Outsiders, minions e demônio tendem a aumentar a dificuldade.</p>
+          <div class="metric-head"><strong>Dificuldade para o bem</strong><span>${metric.difficulty}/10 · ${metric.difficultyLabel}</span></div>
+          <div class="bar"><div class="bar-fill" style="--value:${metric.difficultyPct}%"></div></div>
+          <p class="hint">A escala começa em 5. Abaixo disso fica melhor para o bem; acima disso fica mais pesado para o bem.</p>
         </div>
       </section>
 
@@ -990,7 +1021,7 @@ function renderNight() {
       <section class="step-card" style="margin-top: 14px;">
         <p class="kicker">${game.mode === 'automatic' ? 'Modo automático' : 'Modo manual'}</p>
         <h2>${escapeHTML(step?.title || 'Sem etapa')}</h2>
-        ${renderStepBody(step)}
+        ${result ? '<p class="hint">Ação já confirmada. Para evitar troca de alvo, esta etapa ficou travada.</p>' : renderStepBody(step)}
         ${result ? `<div class="result-box">${result.html}</div>` : ''}
       </section>
       <section class="sticky-actions">
@@ -1022,10 +1053,10 @@ function renderManualStep(step) {
 }
 
 function manualInstruction(step, actor, role) {
-  if (step.id === 'minion-info') return 'Acorde os minions e mostre quem é o demônio.';
-  if (step.id === 'demon-info') return 'Acorde o demônio, mostre os minions e os bluffs.';
-  if (step.action === 'ravenkeeper') return 'Se o Guardião dos Corvos morreu nesta noite, acorde ele e resolva a escolha.';
-  return `Acorde ${actor ? playerName(actor) : `a role ${role?.name || step.title}`}. Resolva a habilidade manualmente.`;
+  if (step.id === 'minion-info') return 'Tela de informação dos minions.';
+  if (step.id === 'demon-info') return 'Tela de informação do demônio.';
+  if (step.action === 'ravenkeeper') return 'Se o Guardião dos Corvos morreu, entregue a tela para ele escolher.';
+  return `Vez de ${actor ? playerName(actor) : `a role ${role?.name || step.title}`}.`;
 }
 
 function renderAutomaticStep(step) {
@@ -1034,16 +1065,16 @@ function renderAutomaticStep(step) {
   if (step.id === 'minion-info') return autoButton('minion-info', 'Revelar informação dos minions');
   if (step.id === 'demon-info') return autoButton('demon-info', 'Revelar informação do demônio');
 
-  const actorLine = actor ? `<p>Chame/passse o celular para: <strong>${escapeHTML(playerName(actor))}</strong>${actor.fakeRoleId ? `, que acredita ser <strong>${escapeHTML(role.name)}</strong>` : ''}.</p>` : '';
+  const actorLine = actor ? `<p>Passe o celular para: <strong>${escapeHTML(playerName(actor))}</strong>${actor.fakeRoleId ? `, que acredita ser <strong>${escapeHTML(role.name)}</strong>` : ''}.</p>` : '';
 
   if (step.action === 'poisoner') {
     return `${actorLine}<div class="action-box"><label>Quem será envenenado?</label>${playerSelect('target', { livingOnly: true })}${autoButton('poisoner', 'Confirmar veneno')}</div>`;
   }
   if (step.action === 'spy') {
-    return `${actorLine}<p>O Espião pode ver o grimório completo.</p>${autoButton('spy', 'Mostrar grimório para o Espião')}`;
+    return `${actorLine}${autoButton('spy', 'Mostrar grimório para o Espião')}`;
   }
   if (['washerwoman', 'librarian', 'investigator', 'chef', 'empath', 'undertaker'].includes(step.action)) {
-    return `${actorLine}<p>O site vai gerar a informação considerando veneno/bêbado de forma simplificada.</p>${autoButton(step.action, 'Gerar informação')}`;
+    return `${actorLine}${autoButton(step.action, 'Gerar informação')}`;
   }
   if (step.action === 'fortune_teller') {
     return `${actorLine}<div class="action-box"><label>Primeiro alvo</label>${playerSelect('targetA')}<label>Segundo alvo</label>${playerSelect('targetB')}${autoButton('fortune_teller', 'Responder SIM/NÃO')}</div>`;
@@ -1060,7 +1091,7 @@ function renderAutomaticStep(step) {
   if (step.action === 'ravenkeeper') {
     const pending = findPlayer(state.game.night.pendingRavenkeeperId);
     if (!pending) return `<p>O Guardião dos Corvos não morreu nesta noite.</p>${autoButton('ravenkeeper', 'Marcar como pulado')}`;
-    return `<p>Acorde <strong>${escapeHTML(playerName(pending))}</strong>.</p><div class="action-box"><label>Quem ele quer verificar?</label>${playerSelect('target')}${autoButton('ravenkeeper', 'Revelar role')}</div>`;
+    return `<p>Passe o celular para <strong>${escapeHTML(playerName(pending))}</strong>.</p><div class="action-box"><label>Quem ele quer verificar?</label>${playerSelect('target')}${autoButton('ravenkeeper', 'Revelar role')}</div>`;
   }
   return `${actorLine}${autoButton(step.action, 'Marcar como feito')}`;
 }
@@ -1074,9 +1105,9 @@ function renderDay() {
   const day = game.day;
   return `
     <main class="app-shell">
-      ${topbar(`Dia ${day.number}`, 'Host registra mortes e execução', 'grimoire')}
+      ${topbar(`Dia ${day.number}`, 'Host registra mortes e execução', 'night')}
       <section class="card">
-        <p>Durante o dia, o host controla conversa, nomeações, Slayer, Virgem, Santo e fim de jogo. Antes da próxima noite, registre quem morreu e quem foi executado.</p>
+        <p>Durante o dia, o host controla conversa, nomeações, Caçador, Virgem e Anjo/Santo. Escolha quem foi executado e vá direto para a próxima noite.</p>
       </section>
       <section class="section-title"><h3>Vivos/mortos</h3></section>
       <section class="grid">
@@ -1093,15 +1124,13 @@ function renderDay() {
       <section class="card" style="margin-top: 12px;">
         <div class="form-row">
           <label>Quem foi executado hoje?</label>
-          ${playerSelect('executed')}
+          ${playerSelect('executed', { livingOnly: true })}
           <p class="hint">Se ninguém foi executado, deixe vazio. O Coveiro usa esta informação na próxima noite.</p>
         </div>
-        <button class="secondary-btn" data-action="save-day">Salvar dia</button>
       </section>
       ${day.warnings?.length ? `<section class="card warning" style="margin-top: 12px;">${day.warnings.map(escapeHTML).join('<br>')}</section>` : ''}
       <section class="sticky-actions">
         <button class="primary-btn" data-action="next-night">Começar próxima noite</button>
-        <button class="ghost-btn" data-action="go-grimoire">Ver grimório</button>
       </section>
     </main>
   `;
@@ -1119,6 +1148,36 @@ function topbar(title, subtitle, backView) {
   `;
 }
 
+
+function renderEnd() {
+  const game = state.game;
+  return `
+    <main class="app-shell">
+      <section class="hero">
+        <div class="hero-badge">Fim de jogo</div>
+        <h1>${escapeHTML(game.winner || 'Fim')}</h1>
+        <p>${escapeHTML(game.endReason || 'Partida encerrada.')}</p>
+      </section>
+      <section class="section-title"><h3>Grimório final</h3></section>
+      <section class="grid">
+        ${game.players.map((player) => `
+          <article class="card player-card ${player.alive ? '' : 'dead'}">
+            <div>
+              <strong>${player.seat}. ${escapeHTML(playerName(player))}</strong>
+              <span>${escapeHTML(trueRole(player).name)}${player.fakeRoleId ? ` · viu ${escapeHTML(displayRole(player).name)}` : ''}</span>
+              <span>${player.alive ? 'Vivo' : 'Morto'}</span>
+            </div>
+            ${rolePill(trueRole(player))}
+          </article>
+        `).join('')}
+      </section>
+      <section class="sticky-actions">
+        <button class="danger-btn" data-action="reset-all">Nova partida do zero</button>
+      </section>
+    </main>
+  `;
+}
+
 function render() {
   const view = state.view;
   if (view === 'home') app.innerHTML = renderHome();
@@ -1129,7 +1188,9 @@ function render() {
   if (view === 'grimoire') app.innerHTML = state.game ? renderGrimoire() : renderHome();
   if (view === 'night') app.innerHTML = state.game?.night ? renderNight() : renderGrimoire();
   if (view === 'day') app.innerHTML = state.game ? renderDay() : renderHome();
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  if (view === 'end') app.innerHTML = state.game ? renderEnd() : renderHome();
+  if (view !== lastRenderedView) window.scrollTo({ top: 0, behavior: 'instant' });
+  lastRenderedView = view;
 }
 
 app.addEventListener('input', (event) => {
@@ -1205,11 +1266,6 @@ app.addEventListener('click', (event) => {
   if (action === 'prev-step') return prevStep();
   if (action === 'next-step') return nextStep();
   if (action === 'auto-action') return executeAutomaticAction(button.dataset.autoAction);
-  if (action === 'save-day') {
-    updateDayFromForm();
-    render();
-    return;
-  }
   if (action === 'next-night') return startNextNightFromDay();
   if (action === 'copy-grimoire') {
     navigator.clipboard?.writeText(JSON.stringify(state.game, null, 2));

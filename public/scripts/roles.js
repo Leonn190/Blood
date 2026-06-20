@@ -40,7 +40,7 @@ export const ROLES = [
     difficulty: -2,
     nightOrderFirst: 40,
     nightOrderOther: null,
-    tags: ['Informação', 'Só noite 1', 'Confirma townsfolk'],
+    tags: [],
     summary: 'Na primeira noite, vê dois jogadores e uma role townsfolk; um deles é aquela role.',
     action: 'washerwoman'
   },
@@ -53,7 +53,7 @@ export const ROLES = [
     difficulty: -2,
     nightOrderFirst: 50,
     nightOrderOther: null,
-    tags: ['Informação', 'Só noite 1', 'Detecta outsider'],
+    tags: [],
     summary: 'Na primeira noite, vê dois jogadores e uma role outsider; um deles é aquela role. Se não houver outsiders, pode saber isso.',
     action: 'librarian'
   },
@@ -66,7 +66,7 @@ export const ROLES = [
     difficulty: -2,
     nightOrderFirst: 60,
     nightOrderOther: null,
-    tags: ['Informação', 'Só noite 1', 'Detecta minion'],
+    tags: [],
     summary: 'Na primeira noite, vê dois jogadores e uma role minion; um deles é aquela role.',
     action: 'investigator'
   },
@@ -79,7 +79,7 @@ export const ROLES = [
     difficulty: -1,
     nightOrderFirst: 70,
     nightOrderOther: null,
-    tags: ['Informação', 'Só noite 1', 'Pares malignos'],
+    tags: [],
     summary: 'Na primeira noite, aprende quantos pares de jogadores malignos estão sentados lado a lado.',
     action: 'chef'
   },
@@ -92,7 +92,7 @@ export const ROLES = [
     difficulty: -3,
     nightOrderFirst: 80,
     nightOrderOther: 70,
-    tags: ['Informação', 'Toda noite', 'Vizinhos'],
+    tags: [],
     summary: 'A cada noite, aprende quantos dos seus dois vizinhos vivos são malignos.',
     action: 'empath'
   },
@@ -105,7 +105,7 @@ export const ROLES = [
     difficulty: -3,
     nightOrderFirst: 90,
     nightOrderOther: 80,
-    tags: ['Informação', 'Toda noite', 'Demon check', 'Red herring'],
+    tags: [],
     summary: 'A cada noite, escolhe dois jogadores e aprende se algum deles registra como demônio.',
     action: 'fortune_teller'
   },
@@ -118,7 +118,7 @@ export const ROLES = [
     difficulty: -2,
     nightOrderFirst: null,
     nightOrderOther: 60,
-    tags: ['Informação', 'Depois do dia', 'Execução'],
+    tags: [],
     summary: 'A partir da segunda noite, aprende qual era a role do jogador executado durante o dia.',
     action: 'undertaker'
   },
@@ -131,7 +131,7 @@ export const ROLES = [
     difficulty: -2,
     nightOrderFirst: null,
     nightOrderOther: 20,
-    tags: ['Proteção', 'Toda noite exceto primeira', 'Anti-demônio'],
+    tags: [],
     summary: 'A cada noite exceto a primeira, escolhe outro jogador para ficar protegido do demônio naquela noite.',
     action: 'monk'
   },
@@ -144,7 +144,7 @@ export const ROLES = [
     difficulty: -2,
     nightOrderFirst: null,
     nightOrderOther: 50,
-    tags: ['Condicional', 'Morte noturna', 'Informação'],
+    tags: [],
     summary: 'Se morrer durante a noite, acorda e escolhe um jogador para aprender a role dele.',
     action: 'ravenkeeper'
   },
@@ -157,7 +157,7 @@ export const ROLES = [
     difficulty: -1,
     nightOrderFirst: null,
     nightOrderOther: null,
-    tags: ['Dia', 'Nomeação', 'Confirmação'],
+    tags: [],
     summary: 'Durante o dia, a primeira nomeação feita contra ela pode executar o nomeador se ele for townsfolk.',
     action: 'manual_day'
   },
@@ -170,7 +170,7 @@ export const ROLES = [
     difficulty: -1,
     nightOrderFirst: null,
     nightOrderOther: null,
-    tags: ['Dia', 'Uma vez', 'Tiro no demônio'],
+    tags: [],
     summary: 'Durante o dia, uma vez por jogo, escolhe um jogador; se for o demônio, ele morre.',
     action: 'manual_day'
   },
@@ -183,7 +183,7 @@ export const ROLES = [
     difficulty: -1,
     nightOrderFirst: null,
     nightOrderOther: null,
-    tags: ['Passivo', 'Imune ao demônio', 'Sobrevivência'],
+    tags: [],
     summary: 'Não morre pelo ataque direto do demônio.',
     action: 'passive'
   },
@@ -196,7 +196,7 @@ export const ROLES = [
     difficulty: -2,
     nightOrderFirst: null,
     nightOrderOther: null,
-    tags: ['Passivo', 'Final de jogo', 'Redirecionamento'],
+    tags: [],
     summary: 'Pode vencer se restarem três vivos e não houver execução. Se atacado à noite, o ataque pode ser redirecionado.',
     action: 'passive'
   },
@@ -209,7 +209,7 @@ export const ROLES = [
     difficulty: 1,
     nightOrderFirst: 100,
     nightOrderOther: 90,
-    tags: ['Restrição', 'Toda noite', 'Voto'],
+    tags: [],
     summary: 'A cada noite, escolhe um mestre. No dia seguinte, só deve votar se o mestre votar junto.',
     action: 'butler'
   },
@@ -222,7 +222,7 @@ export const ROLES = [
     difficulty: 2,
     nightOrderFirst: null,
     nightOrderOther: null,
-    tags: ['Desinformação', 'Acha que é townsfolk', 'Setup'],
+    tags: [],
     summary: 'Não sabe que é o Bêbado; recebe uma role townsfolk falsa e informações ruins.',
     action: 'drunk'
   },
@@ -235,7 +235,7 @@ export const ROLES = [
     difficulty: 1,
     nightOrderFirst: null,
     nightOrderOther: null,
-    tags: ['Registro falso', 'Pode parecer maligno', 'Confusão'],
+    tags: [],
     summary: 'Pode registrar como maligno, minion ou demônio mesmo sendo bom.',
     action: 'passive'
   },
@@ -248,7 +248,7 @@ export const ROLES = [
     difficulty: 3,
     nightOrderFirst: null,
     nightOrderOther: null,
-    tags: ['Execução perigosa', 'Derrota do bem', 'Dia'],
+    tags: [],
     summary: 'Se for executado, o bem perde.',
     action: 'manual_day'
   },
@@ -261,7 +261,7 @@ export const ROLES = [
     difficulty: 3,
     nightOrderFirst: 20,
     nightOrderOther: 10,
-    tags: ['Maligno', 'Toda noite', 'Desliga informação'],
+    tags: [],
     summary: 'A cada noite, escolhe alguém para ficar envenenado; ações e informações dessa pessoa podem falhar.',
     action: 'poisoner'
   },
@@ -274,7 +274,7 @@ export const ROLES = [
     difficulty: 2,
     nightOrderFirst: 30,
     nightOrderOther: 30,
-    tags: ['Maligno', 'Vê o grimório', 'Pode registrar bom'],
+    tags: [],
     summary: 'Vê quem é quem. Para informações do bem, pode registrar como townsfolk.',
     action: 'spy'
   },
@@ -287,7 +287,7 @@ export const ROLES = [
     difficulty: 3,
     nightOrderFirst: null,
     nightOrderOther: null,
-    tags: ['Maligno', 'Backup do demônio', 'Transformação'],
+    tags: [],
     summary: 'Se o demônio morrer com jogadores vivos suficientes, ela pode virar o novo demônio.',
     action: 'scarlet_woman'
   },
@@ -300,7 +300,7 @@ export const ROLES = [
     difficulty: 2,
     nightOrderFirst: null,
     nightOrderOther: null,
-    tags: ['Maligno', 'Setup', '+2 outsiders'],
+    tags: [],
     summary: 'Na montagem, adiciona mais outsiders e reduz townsfolk.',
     action: 'baron'
   },
@@ -313,7 +313,7 @@ export const ROLES = [
     difficulty: 4,
     nightOrderFirst: null,
     nightOrderOther: 40,
-    tags: ['Demônio', 'Mata à noite', 'Pode passar o demônio'],
+    tags: [],
     summary: 'A cada noite exceto a primeira, escolhe alguém para morrer. Se matar a si mesmo, pode passar o demônio para um minion.',
     action: 'imp'
   }
