@@ -124,6 +124,15 @@ function livingPlayers() {
   return allPlayers().filter((player) => player.alive);
 }
 
+function pendingDeathIds() {
+  return new Set(state.game?.night?.deadTonightIds || []);
+}
+
+function activeLivingPlayers() {
+  const pending = pendingDeathIds();
+  return livingPlayers().filter((player) => !pending.has(player.id));
+}
+
 function deadPlayersIncludingPending() {
   const pending = new Set(state.game?.night?.deadTonightIds || []);
   return allPlayers().filter((player) => !player.alive || pending.has(player.id));
@@ -184,7 +193,7 @@ function isBlockedActor(playerId) {
 }
 
 function hasAliveRole(roleId) {
-  return livingPlayers().some((player) => player.currentRoleId === roleId && !isDrunkLike(player));
+  return activeLivingPlayers().some((player) => player.currentRoleId === roleId && !isDrunkLike(player));
 }
 
 function roleStepCount(role) {
@@ -401,8 +410,8 @@ function startGame() {
       fakeRoleId = sample(possibleFakeTownsfolk) || sample(ROLES.filter((r) => r.type === 'townsfolk').map((r) => r.id));
     }
     if (roleId === 'lunatic') {
-      const duplicates = selectedIds.filter((id) => id !== 'lunatic');
-      fakeRoleId = sample(duplicates) || selectedDemonId;
+      const goodDuplicates = selectedIds.filter((id) => id !== 'lunatic' && !isEvilRole(id));
+      fakeRoleId = sample(goodDuplicates) || sample(ROLES.filter((r) => !isEvilRole(r.id)).map((r) => r.id));
     }
     if (roleId === 'tormented') {
       fakeRoleId = selectedDemonId;
@@ -551,6 +560,7 @@ function startNight(number = state.game.nightNumber) {
 
 function shouldIncludeRoleStep(player, role, nightNumber) {
   if (!player.alive) return false;
+  if (pendingDeathIds().has(player.id)) return false;
   if (!role?.action) return false;
   if (state.game.disabledPowerIds?.includes(player.id) && trueRole(player)?.type !== 'demon') return false;
   if (role.action === 'undertaker') return nightNumber > 1 && Boolean(state.game.day?.lastExecutedId);
@@ -609,12 +619,48 @@ function buildNightSteps(nightNumber) {
   return steps;
 }
 
+function syncFutureNightSteps() {
+  const night = state.game?.night;
+  if (!night?.steps) return;
+  const currentIndex = Math.max(0, night.currentStep || 0);
+  const current = night.steps[currentIndex];
+  const currentOrder = Number.isFinite(current?.order) ? current.order : -Infinity;
+  const keep = night.steps.slice(0, currentIndex + 1);
+  const futureSpecial = night.steps.slice(currentIndex + 1).filter((step) => step.kind !== 'role');
+  const usedIds = new Set([...keep, ...futureSpecial].map((step) => step.id));
+  const futureRoles = [];
+
+  allPlayers().forEach((player) => {
+    const role = actingRole(player);
+    if (!shouldIncludeRoleStep(player, role, night.number)) return;
+    const order = night.number === 1 ? role.nightOrderFirst : role.nightOrderOther;
+    if (order === null || order === undefined || order <= currentOrder) return;
+    const id = `${role.action}-${player.id}-${night.number}`;
+    if (usedIds.has(id) || night.results?.[id]) return;
+    futureRoles.push({
+      id,
+      kind: 'role',
+      title: role.name,
+      roleId: role.id,
+      actorId: player.id,
+      action: role.action,
+      order
+    });
+  });
+
+  const future = [...futureSpecial, ...futureRoles]
+    .filter((step, index, list) => list.findIndex((item) => item.id === step.id) === index)
+    .sort((a, b) => a.order - b.order);
+  night.steps = [...keep, ...future];
+}
+
 function currentStep() {
   return state.game?.night?.steps?.[state.game.night.currentStep] || null;
 }
 
 function isStepSkipped(step) {
   if (!step?.actorId) return false;
+  if (step.action === 'clumsy') return false;
   const actor = findPlayer(step.actorId);
   const pendingDeath = state.game?.night?.deadTonightIds?.includes(step.actorId);
   const blocked = state.game?.night?.blockedActorIds?.includes(step.actorId);
@@ -657,6 +703,13 @@ function finishNight() {
   state.game.log.push(`Noite ${state.game.night.number} terminou.${names ? ` Mortes: ${names}.` : ' Sem mortes noturnas.'}`);
   resolveDemonBackup('morte durante a noite');
   state.game.day = { number: state.game.night.number, lastExecutedId: null, lastDayDeaths: [], warnings: [] };
+  if (state.game.status.alchemistDemonId) {
+    const watcher = findPlayer(state.game.night.alchemistWatch?.actorId);
+    const demon = findPlayer(state.game.status.alchemistDemonId);
+    const message = `Alquimista${watcher ? ` (${playerName(watcher)})` : ''} descobriu o demônio: ${playerName(demon)}.`;
+    state.game.day.warnings.push(message);
+    state.game.log.push(message);
+  }
   if (checkGameEnd()) return;
   go('day');
 }
@@ -666,7 +719,7 @@ function findPlayer(id) {
 }
 
 function playerSelect(name, options = {}) {
-  const players = options.deadOnly ? deadPlayersIncludingPending() : options.livingOnly ? livingPlayers() : allPlayers();
+  const players = options.deadOnly ? deadPlayersIncludingPending() : options.livingOnly ? activeLivingPlayers() : allPlayers();
   const exclude = new Set(options.exclude || []);
   return `
     <select name="${escapeHTML(name)}" data-field="${escapeHTML(name)}">
@@ -727,6 +780,7 @@ function addNightDeath(id) {
     state.game.night.pendingClumsyIds = [...new Set([...(state.game.night.pendingClumsyIds || []), id])];
     queueNightStep({ id: `clumsy-${id}-${state.game.night.number}`, kind: 'conditional', title: 'Desajeitado', roleId: 'clumsy', action: 'clumsy', actorId: id, order: 64 + (state.game.night.pendingClumsyIds.length || 0) });
   }
+  syncFutureNightSteps();
 }
 
 function applyDeathTrigger(player, source = '') {
@@ -746,14 +800,14 @@ function addDemonNightDeath(id, demon) {
   const target = findPlayer(id);
   addNightDeath(id);
   if (target?.currentRoleId === 'cursed') {
-    const ally = sample(livingPlayers().filter((p) => p.id !== id && p.id !== demon?.id && !isPlayerEvil(p)));
+    const ally = sample(activeLivingPlayers().filter((p) => p.id !== id && p.id !== demon?.id && !isPlayerEvil(p)));
     if (ally) addNightDeath(ally.id);
   }
 }
 
 function heroTrap(actor, target) {
   if (!actor || !target) return false;
-  if (!isPlayerEvil(actor)) return false;
+  if (trueRole(actor)?.type !== 'demon') return false;
   if (target.currentRoleId !== 'hero' || isDrunkLike(target)) return false;
   addNightDeath(actor.id);
   addNightDeath(target.id);
@@ -842,7 +896,10 @@ function actionSentinel(step) {
   const actor = findPlayer(step.actorId);
   const target = findPlayer(targetId);
   state.game.status.sentinelBlockedId = targetId;
-  if (!actorBlockedOrDrunk(actor)) state.game.night.blockedActorIds = [...new Set([...(state.game.night.blockedActorIds || []), targetId])];
+  if (!actorBlockedOrDrunk(actor)) {
+    state.game.night.blockedActorIds = [...new Set([...(state.game.night.blockedActorIds || []), targetId])];
+    syncFutureNightSteps();
+  }
   markResult(step.id, `${escapeHTML(playerName(target))} foi impedido de acordar.`, { targetIds: [targetId], ineffective: actorBlockedOrDrunk(actor) });
 }
 
@@ -854,7 +911,10 @@ function actionExorcist(step) {
   state.game.night.exorcisedId = targetId;
   state.game.status.exorcisedId = targetId;
   const effective = !actorBlockedOrDrunk(actor) && isPlayerEvil(target);
-  if (effective) state.game.night.blockedActorIds = [...new Set([...(state.game.night.blockedActorIds || []), targetId])];
+  if (effective) {
+    state.game.night.blockedActorIds = [...new Set([...(state.game.night.blockedActorIds || []), targetId])];
+    syncFutureNightSteps();
+  }
   markResult(step.id, `${escapeHTML(playerName(target))} foi escolhido.`, { targetIds: [targetId], ineffective: !effective });
 }
 
@@ -868,16 +928,34 @@ function actionDoctor(step) {
 }
 
 
+function fakeGrimoireRows() {
+  const possibleRoles = ROLES.filter(Boolean);
+  return allPlayers().map((player) => {
+    const fakeRole = sample(possibleRoles) || trueRole(player);
+    return `${player.seat}. ${escapeHTML(playerName(player))}: ${escapeHTML(fakeRole.name)}${player.alive ? '' : ' — morto'}`;
+  }).join('<br>');
+}
+
 function actionWidow(step) {
   const targetId = getField('target');
   if (!assertChoice(targetId, 'Escolha quem a Widow vai envenenar.')) return;
   const actor = findPlayer(step.actorId);
   const target = findPlayer(targetId);
-  const knownBy = sample(livingPlayers().filter((p) => p.id !== actor.id));
-  state.game.status.widowKnownById = knownBy?.id || null;
-  if (!actorBlockedOrDrunk(actor) && !isSoberProtected(targetId)) state.game.status.widowPoisonedId = targetId;
-  const rows = allPlayers().map((player) => `${player.seat}. ${escapeHTML(playerName(player))}: ${escapeHTML(trueRole(player).name)}${player.fakeRoleId ? `, viu ${escapeHTML(visibleRole(player).name)}` : ''}${player.alive ? '' : ' — morto'}`).join('<br>');
-  markResult(step.id, `<strong>Grimório:</strong><br>${rows}<br><br><strong>Envenenado:</strong> ${escapeHTML(playerName(target))}<br><strong>Sabe quem é a Widow:</strong> ${knownBy ? escapeHTML(playerName(knownBy)) : 'ninguém'}`, { targetIds: [targetId], ineffective: actorBlockedOrDrunk(actor) || isSoberProtected(targetId) });
+  const blocked = actorBlockedOrDrunk(actor);
+  const poisonBlocked = blocked || isSoberProtected(targetId);
+  let knownBy = null;
+
+  if (!blocked) {
+    knownBy = sample(activeLivingPlayers().filter((p) => p.id !== actor.id));
+    state.game.status.widowKnownById = knownBy?.id || null;
+  }
+  if (!poisonBlocked) state.game.status.widowPoisonedId = targetId;
+
+  const rows = blocked
+    ? fakeGrimoireRows()
+    : allPlayers().map((player) => `${player.seat}. ${escapeHTML(playerName(player))}: ${escapeHTML(trueRole(player).name)}${player.fakeRoleId ? `, viu ${escapeHTML(visibleRole(player).name)}` : ''}${player.alive ? '' : ' — morto'}`).join('<br>');
+
+  markResult(step.id, `<strong>${blocked ? 'Grimório inválido:' : 'Grimório:'}</strong><br>${rows}<br><br><strong>Envenenado:</strong> ${poisonBlocked ? 'ninguém' : escapeHTML(playerName(target))}<br><strong>Sabe quem é a Widow:</strong> ${knownBy ? escapeHTML(playerName(knownBy)) : 'ninguém'}`, { targetIds: [targetId], ineffective: poisonBlocked });
 }
 
 function actionDevilsAdvocate(step) {
@@ -912,7 +990,6 @@ function actionPoisoner(step) {
   if (!assertChoice(targetId)) return;
   const actor = findPlayer(step.actorId);
   const target = findPlayer(targetId);
-  if (heroTrap(actor, target)) return markResult(step.id, `${escapeHTML(playerName(target))} ativou o Herói. Ambos morrerão.`, { targetIds: [targetId], ineffective: true });
   if (actorBlockedOrDrunk(actor) || isSoberProtected(targetId)) return markResult(step.id, `${escapeHTML(playerName(target))} foi escolhido, mas não ficou envenenado.`, { targetIds: [targetId], ineffective: true });
   state.game.night.poisonedId = targetId;
   state.game.status.poisonedId = targetId;
@@ -921,8 +998,12 @@ function actionPoisoner(step) {
 }
 
 function actionSpy(step) {
-  const rows = allPlayers().map((player) => `${player.seat}. ${escapeHTML(playerName(player))}: ${escapeHTML(trueRole(player).name)}${player.fakeRoleId ? `, viu ${escapeHTML(visibleRole(player).name)}` : ''}${player.abilityRoleId ? `, roubou ${escapeHTML(roleById(player.abilityRoleId)?.name || '')}` : ''}${player.alive ? '' : ' — morto'}`).join('<br>');
-  markResult(step.id, `<strong>Grimório completo:</strong><br>${rows}`);
+  const actor = findPlayer(step.actorId);
+  const blocked = actorBlockedOrDrunk(actor);
+  const rows = blocked
+    ? fakeGrimoireRows()
+    : allPlayers().map((player) => `${player.seat}. ${escapeHTML(playerName(player))}: ${escapeHTML(trueRole(player).name)}${player.fakeRoleId ? `, viu ${escapeHTML(visibleRole(player).name)}` : ''}${player.abilityRoleId ? `, roubou ${escapeHTML(roleById(player.abilityRoleId)?.name || '')}` : ''}${player.alive ? '' : ' — morto'}`).join('<br>');
+  markResult(step.id, `<strong>${blocked ? 'Grimório inválido:' : 'Grimório completo:'}</strong><br>${rows}`, { ineffective: blocked });
 }
 
 function actionTechnician(step) {
@@ -1053,11 +1134,11 @@ function closestAliveNeighbors(playerId) {
   const neighbors = [];
   for (let offset = 1; offset < players.length && neighbors.length < 1; offset += 1) {
     const left = players[(index - offset + players.length) % players.length];
-    if (left.alive) neighbors.push(left);
+    if (left.alive && !pendingDeathIds().has(left.id)) neighbors.push(left);
   }
   for (let offset = 1; offset < players.length && neighbors.length < 2; offset += 1) {
     const right = players[(index + offset) % players.length];
-    if (right.alive && right.id !== neighbors[0]?.id) neighbors.push(right);
+    if (right.alive && !pendingDeathIds().has(right.id) && right.id !== neighbors[0]?.id) neighbors.push(right);
   }
   return neighbors;
 }
@@ -1141,6 +1222,7 @@ function actionProfessor(step) {
     [a.trueRoleId, b.trueRoleId] = [b.trueRoleId, a.trueRoleId];
     [a.fakeRoleId, b.fakeRoleId] = [b.fakeRoleId, a.fakeRoleId];
     state.game.status.professorSwap = `${playerName(a)} ↔ ${playerName(b)}`;
+    syncFutureNightSteps();
   }
   markResult(step.id, canSwap ? `${escapeHTML(playerName(a))} e ${escapeHTML(playerName(b))} trocaram de role.` : 'A troca falhou.', { targetIds: [aId, bId], ineffective: !canSwap });
 }
@@ -1204,7 +1286,7 @@ function demonKillTarget(demon, target, options = {}) {
   let killed = target;
   let note = '';
   if (!options.ignoreProtections && target.currentRoleId === 'mayor' && !isDrunkLike(target)) {
-    const redirectOptions = livingPlayers().filter((player) => player.id !== target.id && player.id !== demon.id);
+    const redirectOptions = activeLivingPlayers().filter((player) => player.id !== target.id && player.id !== demon.id);
     if (redirectOptions.length && Math.random() < 0.5) {
       killed = sample(redirectOptions);
       note = `Morte redirecionada para ${playerName(killed)}.`;
@@ -1240,6 +1322,7 @@ function actionVampire(step) {
   if (!assertChoice(targetId, 'Escolha a vítima do Vampiro.')) return;
   const target = findPlayer(targetId);
   const demon = findPlayer(step.actorId);
+  if (target.id === demon.id) return markResult(step.id, 'Vampiro não pode escolher a si mesmo.', { targetIds: [targetId], ineffective: true });
   if (actorBlockedOrDrunk(demon)) return markResult(step.id, 'O ataque não gerou efeito.', { targetIds: [targetId], ineffective: true });
   if (!state.game.status.vampireConvertedId) {
     if (heroTrap(demon, target)) return markResult(step.id, `${escapeHTML(playerName(target))} ativou o Herói. Ambos morrerão.`, { targetIds: [targetId] });
@@ -1260,6 +1343,7 @@ function actionVampire(step) {
 function actionPo(step, mode = 'kill') {
   const demon = findPlayer(step.actorId);
   if (mode === 'skip') {
+    if (actorBlockedOrDrunk(demon)) return markResult(step.id, 'Po tentou carregar, mas falhou.', { ineffective: true });
     demon.used.poSkips = (demon.used.poSkips || 0) + 1;
     return markResult(step.id, `Po não matou. Carga atual: ${demon.used.poSkips + 1} mortes.`, { ineffective: false });
   }
@@ -1269,7 +1353,7 @@ function actionPo(step, mode = 'kill') {
   demon.used.poKilled = true;
   const totalKills = 1 + (demon.used.poSkips || 0);
   const firstTarget = findPlayer(targetId);
-  const extraTargets = sampleMany(livingPlayers().filter((p) => p.id !== demon.id && p.id !== targetId), Math.max(0, totalKills - 1));
+  const extraTargets = sampleMany(activeLivingPlayers().filter((p) => p.id !== demon.id && p.id !== targetId), Math.max(0, totalKills - 1));
   const targets = [firstTarget, ...extraTargets].filter(Boolean);
   const notes = targets.map((target) => demonKillTarget(demon, target));
   markResult(step.id, notes.map(escapeHTML).join('<br>'), { targetIds: targets.map((p) => p.id) });
@@ -1280,15 +1364,23 @@ function actionOverlord(step) {
   if (!assertChoice(targetId, 'Escolha o alvo do Overlord.')) return;
   const demon = findPlayer(step.actorId);
   const target = findPlayer(targetId);
-  if (!actorBlockedOrDrunk(demon)) state.game.status.overlordTargetId = targetId;
-  markResult(step.id, `${escapeHTML(playerName(target))} foi marcado pelo Overlord.`, { targetIds: [targetId], ineffective: actorBlockedOrDrunk(demon) });
+  if (actorBlockedOrDrunk(demon)) return markResult(step.id, `${escapeHTML(playerName(target))} foi escolhido, mas o Overlord falhou.`, { targetIds: [targetId], ineffective: true });
+  if (heroTrap(demon, target)) return markResult(step.id, `${escapeHTML(playerName(target))} ativou o Herói. Ambos morrerão.`, { targetIds: [targetId] });
+  state.game.status.overlordTargetId = targetId;
+  markResult(step.id, `${escapeHTML(playerName(target))} foi marcado pelo Overlord.`, { targetIds: [targetId] });
 }
 
 function actionOverlordKill(step) {
   const target = findPlayer(state.game.status.overlordKillPendingId);
-  if (!target || !target.alive) {
+  const demon = activeLivingPlayers().find((p) => trueRole(p)?.type === 'demon');
+  if (!target || !target.alive || pendingDeathIds().has(target.id)) {
     state.game.status.overlordKillPendingId = null;
     return markResult(step.id, 'Nenhuma morte pendente do Overlord.');
+  }
+  const protectedNote = protectedFromDemonKill(target, demon);
+  if (protectedNote) {
+    state.game.status.overlordKillPendingId = null;
+    return markResult(step.id, escapeHTML(protectedNote), { ineffective: true });
   }
   addNightDeath(target.id);
   state.game.status.overlordKillPendingId = null;
@@ -1301,8 +1393,10 @@ function actionParasite(step) {
   const demon = findPlayer(step.actorId);
   const target = findPlayer(targetId);
   if (state.game.night.number === 1 && !state.game.status.parasiteHostId) {
-    if (!actorBlockedOrDrunk(demon)) state.game.status.parasiteHostId = targetId;
-    return markResult(step.id, `${escapeHTML(playerName(target))} virou hospedeiro.`, { targetIds: [targetId], ineffective: actorBlockedOrDrunk(demon) });
+    if (actorBlockedOrDrunk(demon)) return markResult(step.id, `${escapeHTML(playerName(target))} foi escolhido, mas o Parasita falhou.`, { targetIds: [targetId], ineffective: true });
+    if (heroTrap(demon, target)) return markResult(step.id, `${escapeHTML(playerName(target))} ativou o Herói. Ambos morrerão.`, { targetIds: [targetId] });
+    state.game.status.parasiteHostId = targetId;
+    return markResult(step.id, `${escapeHTML(playerName(target))} virou hospedeiro.`, { targetIds: [targetId] });
   }
   if (actorBlockedOrDrunk(demon)) return markResult(step.id, 'O ataque não gerou morte.', { targetIds: [targetId], ineffective: true });
   const note = demonKillTarget(demon, target);
@@ -1314,7 +1408,9 @@ function actionPukka(step) {
   if (!assertChoice(targetId, 'Escolha o alvo do Pukka.')) return;
   const demon = findPlayer(step.actorId);
   const target = findPlayer(targetId);
-  if (actorBlockedOrDrunk(demon) || isSoberProtected(targetId)) return markResult(step.id, `${escapeHTML(playerName(target))} foi escolhido, mas não ficou envenenado.`, { targetIds: [targetId], ineffective: true });
+  if (actorBlockedOrDrunk(demon)) return markResult(step.id, `${escapeHTML(playerName(target))} foi escolhido, mas o Pukka falhou.`, { targetIds: [targetId], ineffective: true });
+  if (heroTrap(demon, target)) return markResult(step.id, `${escapeHTML(playerName(target))} ativou o Herói. Ambos morrerão.`, { targetIds: [targetId] });
+  if (isSoberProtected(targetId)) return markResult(step.id, `${escapeHTML(playerName(target))} foi escolhido, mas não ficou envenenado.`, { targetIds: [targetId], ineffective: true });
   state.game.status.pukkaPoisonedId = targetId;
   state.game.status.pukkaDoomedId = targetId;
   markResult(step.id, `${escapeHTML(playerName(target))} ficou envenenado e marcado para morrer na próxima noite.`, { targetIds: [targetId] });
@@ -1324,8 +1420,11 @@ function actionPukkaDoom(step) {
   const target = findPlayer(state.game.status.pukkaDoomedId);
   state.game.status.pukkaDoomedId = null;
   state.game.status.pukkaPoisonedId = null;
-  if (!target || !target.alive) return markResult(step.id, 'A vítima anterior do Pukka já não está viva.');
-  addDemonNightDeath(target.id, livingPlayers().find((p) => trueRole(p)?.type === 'demon'));
+  if (!target || !target.alive || pendingDeathIds().has(target.id)) return markResult(step.id, 'A vítima anterior do Pukka já não está viva.');
+  const demon = activeLivingPlayers().find((p) => trueRole(p)?.type === 'demon');
+  const protectedNote = protectedFromDemonKill(target, demon);
+  if (protectedNote) return markResult(step.id, escapeHTML(protectedNote), { ineffective: true });
+  addDemonNightDeath(target.id, demon);
   markResult(step.id, `${escapeHTML(playerName(target))} morrerá pelo Pukka.`);
 }
 
@@ -1336,13 +1435,12 @@ function actionAssassin(step) {
   const target = findPlayer(targetId);
   actor.used.assassin = true;
   if (actorBlockedOrDrunk(actor)) return markResult(step.id, 'O Assassino falhou.', { targetIds: [targetId], ineffective: true });
-  if (heroTrap(actor, target)) return markResult(step.id, `${escapeHTML(playerName(target))} ativou o Herói. Ambos morrerão.`, { targetIds: [targetId] });
   addNightDeath(targetId);
   markResult(step.id, `${escapeHTML(playerName(target))} morrerá.`, { targetIds: [targetId] });
 }
 
 function actionExplosive(step) {
-  const victims = sampleMany(livingPlayers().filter((p) => !isPlayerEvil(p)), 2);
+  const victims = sampleMany(activeLivingPlayers().filter((p) => !isPlayerEvil(p)), 2);
   victims.forEach((p) => addNightDeath(p.id));
   state.game.status.explosivePending = false;
   markResult(step.id, victims.length ? `${victims.map(playerName).map(escapeHTML).join(', ')} morrerão pelo Explosivo.` : 'Explosivo não encontrou bons vivos.');
@@ -1367,7 +1465,7 @@ function isProtectedByProtector(targetId) {
 function isProtectedByGuardian(targetId) {
   const status = state.game.status || {};
   const guardian = findPlayer(status.guardianId);
-  return status.permanentGuardedId === targetId && guardian?.alive && !isDrunkLike(guardian);
+  return status.permanentGuardedId === targetId && guardian?.alive && !pendingDeathIds().has(guardian.id) && !isDrunkLike(guardian);
 }
 
 function passDemonAfterSelfKill(oldDemon) {
@@ -1413,9 +1511,7 @@ function actionCannibal(step) {
   const target = findPlayer(targetId);
   if (!target) return;
   if (actorBlockedOrDrunk(actor)) {
-    actor.abilityRoleId = sample(ROLES.filter((role) => role.type === 'townsfolk')).id;
-    actor.cannibalSourceId = targetId;
-    return markResult(step.id, `${escapeHTML(playerName(target))} foi escolhido.`, { targetIds: [targetId], ineffective: true });
+    return markResult(step.id, `${escapeHTML(playerName(target))} foi escolhido, mas o poder não foi roubado.`, { targetIds: [targetId], ineffective: true });
   }
   if (isPlayerEvil(target)) {
     addNightDeath(actor.id);
@@ -1507,7 +1603,7 @@ function checkGameEnd() {
 function updateDayFromForm() {
   const warnings = [];
   const executedId = getField('executed');
-  state.game.day.lastExecutedId = executedId || null;
+  state.game.day.lastExecutedId = null;
 
   const wasAlive = new Map(allPlayers().map((player) => [player.id, player.alive]));
   allPlayers().forEach((player) => {
@@ -1529,6 +1625,7 @@ function updateDayFromForm() {
         warnings.push('Princesa não morreu por votação.');
       } else {
         executed.alive = false;
+        state.game.day.lastExecutedId = executed.id;
         applyDeathTrigger(executed, 'execução');
         if (state.game.status.markerMarkedId === executed.id) {
           warnings.push('O Marcado foi executado: o mal vence.');
@@ -1714,6 +1811,7 @@ function playerStatusBadges(player) {
   if ((status.lastNightDeaths || []).includes(player.id)) badges.push('🌙 morreu na última noite');
   if ((status.lastTargets || []).includes(player.id)) badges.push('🎯 alvo na última noite');
   if (status.alchemistWatchId === player.id) badges.push('⚗️ observado pelo Alquimista');
+  if (status.alchemistDemonId === player.id) badges.push('⚗️ visto pelo Alquimista');
   if (state.game?.disabledPowerIds?.includes(player.id)) badges.push('🔒 poder parado');
   if (player.abilityRoleId) badges.push(`🍖 roubou ${roleById(player.abilityRoleId)?.name || 'poder'}`);
   return badges.length ? `<div class="status-badges">${badges.map((b) => `<span>${escapeHTML(b)}</span>`).join('')}</div>` : '<span class="small">sem efeito ativo</span>';
@@ -1778,7 +1876,7 @@ function renderAutomaticStep(step) {
   const actorLine = actor ? `<p class="actor-line"><strong>${escapeHTML(playerName(actor))}</strong>${role ? ` · ${escapeHTML(role.name)}` : ''}</p>` : '';
   if (step.id === 'minion-info') return autoButton('minion-info', 'Mostrar');
   if (step.id === 'demon-info') return autoButton('demon-info', 'Mostrar');
-  if (['sentinel', 'exorcist', 'doctor', 'widow', 'devils_advocate', 'witch', 'poisoner', 'marker', 'assassin', 'vampire', 'overlord', 'pukka', 'alchemist', 'dreamer', 'prince'].includes(step.action)) return `${actorLine}<div class="action-box"><label>Alvo</label>${playerSelect('target', { livingOnly: step.action !== 'dreamer' })}${autoButton(step.action, 'Confirmar')}</div>`;
+  if (['sentinel', 'exorcist', 'doctor', 'widow', 'devils_advocate', 'witch', 'poisoner', 'marker', 'assassin', 'vampire', 'overlord', 'pukka', 'alchemist', 'dreamer', 'prince'].includes(step.action)) return `${actorLine}<div class="action-box"><label>Alvo</label>${playerSelect('target', { livingOnly: step.action !== 'dreamer', exclude: step.action === 'vampire' ? [actor?.id] : [] })}${autoButton(step.action, 'Confirmar')}</div>`;
   if (step.action === 'spy') return `${actorLine}${autoButton('spy', 'Mostrar')}`;
   if (['technician', 'king', 'general', 'noble', 'washerwoman', 'librarian', 'investigator', 'chef', 'farmer', 'empath', 'undertaker', 'cartographer', 'intellectual', 'mathematician', 'historian', 'observer'].includes(step.action)) return `${actorLine}${autoButton(step.action, 'Mostrar')}`;
   if (step.action === 'fortune_teller' || step.action === 'professor') return `${actorLine}<div class="action-box"><label>Primeiro alvo</label>${playerSelect('targetA', { livingOnly: step.action === 'professor' })}<label>Segundo alvo</label>${playerSelect('targetB', { livingOnly: step.action === 'professor' })}${autoButton(step.action, step.action === 'professor' ? 'Confirmar' : 'Mostrar')}</div>`;
@@ -1834,6 +1932,18 @@ function renderDayPowers() {
   if (state.game.status.overlordTargetId && findPlayer(state.game.status.overlordTargetId)?.alive) html.push(`<div class="action-box"><strong>Overlord</strong><p>${escapeHTML(playerName(findPlayer(state.game.status.overlordTargetId)))} está marcado.</p><button class="danger-btn" data-action="day-power" data-power="overlord-good-nomination">Foi nominado por alguém do bem</button></div>`);
   const king = livingPlayers().find((p) => p.currentRoleId === 'king');
   if (king) html.push(`<div class="action-box"><strong>Rei</strong><button class="danger-btn" data-action="day-power" data-power="king-wrong-vote">Marcar voto inválido do Rei</button></div>`);
+
+  const manualNotes = [];
+  const virgin = livingPlayers().find((p) => p.currentRoleId === 'virgin');
+  if (virgin) manualNotes.push(`<strong>Virgem:</strong> atenção à primeira nomeação contra ${escapeHTML(playerName(virgin))}.`);
+  const judge = livingPlayers().find((p) => p.currentRoleId === 'judge');
+  if (judge) manualNotes.push(`<strong>Juiz:</strong> ${escapeHTML(playerName(judge))} tem voto/fala manual controlado pelo host.`);
+  const neutralist = livingPlayers().find((p) => p.currentRoleId === 'neutralist');
+  if (neutralist) manualNotes.push(`<strong>Isentão:</strong> ${escapeHTML(playerName(neutralist))} não pode votar nem nominar.`);
+  const politician = livingPlayers().find((p) => p.currentRoleId === 'politician');
+  if (politician) manualNotes.push(`<strong>Político:</strong> ${escapeHTML(playerName(politician))} tem voto/fala manual controlado pelo host.`);
+  if (manualNotes.length) html.push(`<div class="action-box"><strong>Avisos manuais do dia</strong><p>${manualNotes.join('<br>')}</p></div>`);
+
   return html.length ? `<section class="section-title"><h3>Ações de dia</h3></section><section class="grid">${html.join('')}</section>` : '';
 }
 
