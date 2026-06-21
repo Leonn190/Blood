@@ -1,100 +1,80 @@
-# Implementação das roles — v5
-
-Este arquivo descreve como o site programou cada role no MVP mobile. O dia continua sendo principalmente manual pelo host; o modo automático foca nas etapas noturnas, mortes e informações.
+# Implementação das roles
 
 ## Regras gerais do sistema
 
-- A noite é dividida em etapas reais: cada pessoa que acorda/adquire ação noturna adiciona 1 etapa.
-- Mortos não são chamados para agir, exceto o Guardião dos Corvos quando morreu à noite ou foi executado no dia anterior.
-- Quando uma ação é confirmada, a etapa fica travada. O alvo não pode ser trocado naquela etapa.
-- O painel do host mostra envenenado, protegido pelo Médico, alvo do Exorcista, mestre do Mordomo, protegido pelo Monge e mortes da última noite.
-- O fim de jogo é checado depois de mortes/execução: demônio morto sem substituto = bem vence; só 2 bons vivos = mal vence; Santo executado = mal vence.
-- A Mulher Escarlate tenta virar Imp antes do fim de jogo por morte do demônio.
-- O Médico cancela veneno e bebedeira para o alvo da noite/rodada.
-- O Exorcista bloqueia o poder noturno de um alvo maligno.
+- Mortos não acordam à noite.
+- Cada role que acorda adiciona 1 etapa à noite.
+- Uma ação confirmada fica travada e não pode trocar alvo.
+- A tela de dia não mostra um painel separado; os efeitos aparecem no card de cada jogador.
+- O link do guia da partida mostra o pool da seleção, não apenas a subseleção escolhida.
+- O preenchimento automático sorteia formações válidas com Barão ou sem Barão. Se Barão entra, aplica +2 Outsiders e -2 Townsfolk.
+- Dificuldade parte de 5. Townsfolk normalmente reduzem, Outsiders/Minions/Demônio aumentam.
+- Fim automático: demônio morto, mal com só demônio e Missionário vivo, 2 bons vivos, Santo executado, Rei morto.
 
-## Townsfolk
+## Townsfolk clássicos
 
-### Lavadeira
-Age só na noite 1. O site pega um Townsfolk real, mistura com outro jogador e mostra a role. Se Lavadeira estiver bêbada/envenenada, a dupla/role pode ser falsa.
+- Lavadeira: noite 1, mostra dois jogadores e uma role Townsfolk; um deles pode ter aquela role. Bêbado/envenenado gera informação falsa.
+- Bibliotecário: noite 1, mostra dois jogadores e uma role Outsider; se não houver Outsider mostra isso. Bêbado/envenenado pode falsificar.
+- Investigador: noite 1, mostra dois jogadores e uma role Minion possível. Bêbado/envenenado pode falsificar.
+- Chef: noite 1, conta pares malignos lado a lado. Recluso pode registrar como mau. Bêbado/envenenado randomiza.
+- Empata: toda noite, conta quantos dos dois vizinhos vivos registram como malignos.
+- Vidente: toda noite, escolhe dois jogadores e recebe SIM/NÃO considerando demônio, red herring e Recluso.
+- Coveiro: só acorda se houve execução no dia anterior; mostra a role do executado.
+- Monge: escolhe alguém vivo para proteger do demônio.
+- Guardião dos Corvos: só acorda se morreu à noite ou foi executado; vê a role de alguém.
+- Virgem: manual de dia.
+- Caçador: ação de dia; se atirar no demônio, o demônio morre.
+- Soldado: passivo; sobrevive ao ataque direto do Imp se não estiver inválido.
+- Prefeito: passivo; pode redirecionar ataque e vence com 3 vivos sem execução.
 
-### Bibliotecário
-Age só na noite 1. O site procura um Outsider real; se não houver Outsider e ele não estiver bêbado/envenenado, mostra que não há Outsiders. Se estiver bêbado/envenenado, pode mostrar informação falsa.
+## Townsfolk expandidos
 
-### Investigador
-Age só na noite 1. O site procura um Minion real, mistura com outro jogador e mostra a role Minion. Bêbado/envenenado pode receber informação falsa.
-
-### Chef
-Age só na noite 1. O site conta pares malignos sentados lado a lado, incluindo registros falsos possíveis do Recluso. Bêbado/envenenado recebe número aleatório.
-
-### Empata
-Age toda noite enquanto vivo. O site encontra os dois vizinhos vivos mais próximos e mostra quantos registram como malignos. Bêbado/envenenado recebe número aleatório.
-
-### Vidente
-Age toda noite enquanto viva. Escolhe dois alvos. O site responde SIM se algum alvo registra como demônio, incluindo demônio real, red herring e possível registro falso do Recluso. Bêbada/envenenada recebe SIM/NÃO aleatório.
-
-### Coveiro
-Age nas noites depois da primeira. Mostra a role de quem foi executado no dia anterior. Bêbado/envenenado pode ver role falsa.
-
-### Monge
-Age nas noites depois da primeira. Escolhe uma pessoa viva diferente dele. Se não estiver bêbado/envenenado, o alvo fica protegido de morte do demônio naquela noite.
-
-### Guardião dos Corvos
-Não aparece toda noite. Só entra como etapa condicional se ele morreu à noite ou foi executado no dia anterior. Escolhe um alvo e vê a role dele; bêbado/envenenado pode ver role falsa.
-
-### Virgem
-Role de dia, manual. O site só mantém a role no grimório; o host resolve nomeação e execução.
-
-### Caçador
-Role de dia, manual. O site só mantém a role no grimório; o host resolve o tiro e marca morte se necessário.
-
-### Soldado
-Passivo. Se o Imp atacar diretamente o Soldado e ele não estiver bêbado/envenenado, ele sobrevive.
-
-### Prefeito
-Passivo. Se atacado pelo Imp e não estiver bêbado/envenenado, o site pode redirecionar a morte para outro jogador vivo.
-
-### Exorcista
-Nova role. Age toda noite. Escolhe alguém; se o alvo for maligno e o Exorcista não estiver bêbado/envenenado, o poder noturno desse alvo fica bloqueado. Isso impede veneno do Envenenador e morte do Imp quando eles forem agir.
-
-### Médico
-Nova role. Age toda noite. Escolhe alguém; se o Médico não estiver bêbado/envenenado, o alvo não fica envenenado nem bêbado naquela rodada. Isso também permite que o Bêbado funcione como a role falsa naquela noite.
-
-### Protetor
-Nova role passiva. Enquanto vivo e funcional, os dois vizinhos vivos mais próximos ficam protegidos contra morte causada pelo demônio.
-
-### Canibal
-Nova role. Age nas noites depois da primeira. Pode escolher um jogador morto. Se o morto era bom, o Canibal rouba a habilidade noturna daquele jogador para as próximas noites. Se o morto era maligno, o Canibal morre ao amanhecer.
+- Exorcista: escolhe alguém; se for maligno, bloqueia o poder noturno desse jogador.
+- Médico: escolhe alguém; o alvo não fica envenenado/bêbado naquela rodada.
+- Protetor: os dois vizinhos vivos ficam protegidos contra morte do demônio.
+- Canibal: só acorda quando existe morto; escolhe morto. Se era bom, rouba o poder; se era mau, morre.
+- General: noite 1 vê demônio e minions; depois vê quantos bons/maus estão vivos.
+- Cartógrafo: recebe a role de uma pessoa por noite em direção secreta fixa.
+- Historiador: no fim da noite vê três habilidades usadas naquela noite.
+- Guardião: na segunda noite escolhe alguém para proteger até a própria morte.
+- Religioso: ação de dia, uma vez, pergunta se uma role está em jogo.
+- Juiz: manual de dia; voto vale por dois.
+- Matemático: no fim da noite vê total de ações confirmadas e quantas foram ineficazes.
+- Sonhador: escolhe alguém e vê duas roles possíveis, uma verdadeira e uma falsa se sóbrio.
+- Nobre: noite 1 vê três jogadores; um deles é o demônio.
+- Infiltrado: aparece para o demônio como minion.
+- Mágico: oculta informação de time entre demônio e minions.
+- Fazendeiro: noite 1 vê o nome de um jogador bom.
+- Altruísta: ação de dia; ressuscita um morto e morre.
+- Observador: no fim da noite vê quem foi alvo de ações.
+- Alquimista: escolhe alguém; se o alvo morrer pelo demônio, o host vê quem é o demônio.
+- Sentinela: escolhe alguém para impedir que acorde naquela noite.
+- Missionário: se só restar o demônio do lado mau, o bem vence.
+- Intelectual: recebe sequência de espaçamentos entre jogadores malignos em ordem fixa.
+- Detetive: ação de dia, uma vez, vê a role de alguém.
+- Professor: à noite escolhe dois jogadores; se ambos são bons, troca suas roles.
+- Princesa: não morre em votação.
+- Príncipe: vê a role de alguém; se não for demônio, o poder dessa pessoa fica parado.
+- Técnico: se não houver Barão, um minion não-Barão fica bêbado; o Técnico vê quem é.
+- Herói: se minion/demônio usar poder contra ele, ambos morrem à noite.
+- Sheriff: ação de dia; tiros iguais ao número de minions; mata se acertar minion.
+- Cirurgião: ação de dia; ressuscita alguém morto na última noite.
+- Rei: só válido se Soldado estiver no pool e fora da partida; vê o demônio na noite 1, Imp não recebe Soldado como bluff, se morrer o mal vence. O botão de voto inválido mata o Rei sem ativar essa condição.
 
 ## Outsiders
 
-### Mordomo
-Age toda noite enquanto vivo. Escolhe um mestre. O painel do host mostra quem o Mordomo serve.
-
-### Bêbado
-Recebe uma role Townsfolk falsa na entrega. O jogador vê essa role falsa. Internamente, o site sabe que ele é Bêbado e normalmente gera informação falsa, exceto se estiver protegido pelo Médico.
-
-### Recluso
-Passivo. Pode registrar como maligno/demônio em Chef, Empata e Vidente. Se estiver bêbado/envenenado, esse registro falso não acontece.
-
-### Santo
-Role de dia. Se for executado e não estiver bêbado/envenenado/protegido de falha, o mal vence automaticamente.
+- Mordomo: escolhe mestre à noite; aparece no card dele e do mestre.
+- Bêbado: vê uma role Townsfolk falsa e suas ações/informações podem falhar.
+- Recluso: pode registrar como maligno/demônio.
+- Santo: se executado, mal vence.
 
 ## Minions
 
-### Envenenador
-Age toda noite. Escolhe um jogador vivo. Se não estiver bêbado/envenenado/bloqueado pelo Exorcista, o alvo fica envenenado naquela noite. Se o alvo está protegido pelo Médico, o veneno falha.
-
-### Espião
-Age à noite. Mostra o grimório completo, incluindo roles reais, Bêbado vendo role falsa e Canibal com poder roubado.
-
-### Mulher Escarlate
-Passiva. Se o demônio morrer e ainda houver 5+ vivos, ela vira Imp se estiver viva e funcional. Se estiver envenenada/bêbada, não transforma.
-
-### Barão
-Afeta a montagem da partida. Quando está na seleção, a distribuição exigida vira +2 Outsiders e -2 Townsfolk. O preencher automático sorteia formações válidas com ou sem Barão.
+- Envenenador: escolhe alguém para envenenar, salvo se bloqueado, bêbado, alvo protegido pelo Médico ou Herói ativar.
+- Espião: vê o grimório completo.
+- Mulher Escarlate: vira Imp se o demônio morrer com 5+ vivos.
+- Barão: altera a distribuição: +2 Outsiders e -2 Townsfolk. Dificuldade própria é baixa porque os Outsiders já pesam.
 
 ## Demônio
 
-### Imp
-Age nas noites depois da primeira. Escolhe uma vítima viva. O ataque respeita Monge, Soldado, Prefeito e Protetor. Se o Imp estiver bêbado/envenenado ou bloqueado pelo Exorcista, o ataque não mata. Se escolher a si mesmo, morre e tenta passar o demônio para um Minion vivo, priorizando a Mulher Escarlate.
+- Imp: mata à noite. Respeita Soldado, Monge, Protetor, Guardião e Prefeito. Pode se matar para passar o demônio a um minion vivo, priorizando Mulher Escarlate.

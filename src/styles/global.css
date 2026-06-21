@@ -775,3 +775,122 @@ select option:checked {
     font-size: 0.7rem;
   }
 }
+
+/* v6 ajustes */
+.role-selection-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.role-selection-grid.readonly .role-card { cursor: default; }
+.role-card[data-action] { cursor: pointer; }
+
+.role-card {
+  min-height: 146px;
+  display: flex;
+  align-items: stretch;
+  border-left-width: 5px;
+  transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease;
+}
+
+.role-card:active { transform: scale(0.985); }
+
+.role-card.selected {
+  outline: 2px solid rgba(240, 195, 106, 0.76);
+  background: linear-gradient(135deg, rgba(240, 195, 106, 0.13), rgba(24, 24, 38, 0.96));
+}
+
+.role-card.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 9px;
+  right: 11px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(240, 195, 106, 0.22);
+  border: 1px solid rgba(240, 195, 106, 0.55);
+  color: #ffe1a1;
+  font-weight: 900;
+}
+
+.role-card { position: relative; }
+.role-card-content { width: 100%; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; }
+.role-card .role-title { display: block; }
+.role-card .role-title h3 { padding-right: 22px; font-size: 0.98rem; }
+.role-card .role-title p {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+.compact-hint { display: flex; gap: 6px; flex-wrap: wrap; }
+.mini-stat {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--soft-line);
+  background: rgba(255,255,255,.055);
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: var(--text);
+  font-size: .75rem;
+  font-weight: 900;
+}
+
+.reveal-card {
+  width: 100%;
+  min-height: 270px;
+  height: 270px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: left;
+  color: var(--text);
+  overflow: hidden;
+}
+
+.reveal-card.townsfolk,
+.player-card.townsfolk { border-left: 5px solid var(--blue); }
+.reveal-card.outsider,
+.player-card.outsider { border-left: 5px solid var(--gold); }
+.reveal-card.minion,
+.player-card.minion { border-left: 5px solid var(--purple); }
+.reveal-card.demon,
+.player-card.demon { border-left: 5px solid var(--red); }
+
+.reveal-card.townsfolk { background: radial-gradient(circle at top left, rgba(92,169,255,.24), transparent 58%), var(--panel); }
+.reveal-card.outsider { background: radial-gradient(circle at top left, rgba(240,195,106,.24), transparent 58%), var(--panel); }
+.reveal-card.minion { background: radial-gradient(circle at top left, rgba(183,148,244,.25), transparent 58%), var(--panel); }
+.reveal-card.demon { background: radial-gradient(circle at top left, rgba(207,75,75,.28), transparent 58%), var(--panel); }
+
+.status-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 7px;
+}
+.status-badges span {
+  display: inline-flex;
+  border: 1px solid var(--soft-line);
+  border-radius: 999px;
+  padding: 3px 7px;
+  background: rgba(255,255,255,.055);
+  font-size: .7rem;
+  color: var(--text);
+}
+
+.count-box.townsfolk { border-color: rgba(92,169,255,.35); }
+.count-box.outsider { border-color: rgba(240,195,106,.38); }
+.count-box.minion { border-color: rgba(183,148,244,.42); }
+.count-box.demon { border-color: rgba(207,75,75,.45); }
+
+@media (max-width: 360px) {
+  .role-selection-grid { gap: 8px; }
+  .role-card { min-height: 154px; padding: 11px; }
+  .role-card .role-title p { -webkit-line-clamp: 5; }
+}
