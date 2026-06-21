@@ -91,13 +91,34 @@ export const ROLES = [
   { id: 'drunk', name: 'Bêbado', type: 'outsider', difficulty: 2, nightOrderFirst: null, nightOrderOther: null, summary: 'Não sabe que é o Bêbado. Recebe uma role Townsfolk falsa e pode receber informação errada.', action: 'drunk' },
   { id: 'recluse', name: 'Recluso', type: 'outsider', difficulty: 1, nightOrderFirst: null, nightOrderOther: null, summary: 'Pode registrar como maligno, Minion ou demônio mesmo sendo bom.', action: 'passive' },
   { id: 'saint', name: 'Santo', type: 'outsider', difficulty: 3, nightOrderFirst: null, nightOrderOther: null, summary: 'Se for executado e não estiver inválido, o mal vence.', action: 'day_manual' },
+  { id: 'cursed', name: 'Amaldiçoado', type: 'outsider', difficulty: 2, nightOrderFirst: null, nightOrderOther: null, summary: 'Se for morto pelo demônio, outro aliado bom aleatório morre junto.', action: 'passive' },
+  { id: 'lunatic', name: 'Lunático', type: 'outsider', difficulty: 2, nightOrderFirst: null, nightOrderOther: null, summary: 'Acha que é uma role que já está em jogo, mas sua habilidade não funciona.', action: 'lunatic' },
+  { id: 'neutralist', name: 'Isentão', type: 'outsider', difficulty: 1, nightOrderFirst: null, nightOrderOther: null, summary: 'Não pode votar nem nominar.', action: 'day_manual' },
+  { id: 'golem', name: 'Golem', type: 'outsider', difficulty: 2, nightOrderFirst: null, nightOrderOther: null, summary: 'Sua primeira nomeação mata o alvo se ele não for demônio. Depois não nomeia mais.', action: 'day_golem' },
+  { id: 'clumsy', name: 'Desajeitado', type: 'outsider', difficulty: 2, nightOrderFirst: null, nightOrderOther: null, summary: 'Ao morrer à noite, escolhe alguém para chutar como mau. Se errar, essa pessoa morre.', action: 'clumsy' },
+  { id: 'tormented', name: 'Atormentado', type: 'outsider', difficulty: 2, nightOrderFirst: null, nightOrderOther: null, summary: 'Acha que é o demônio, mas suas mortes sempre falham.', action: 'tormented' },
+  { id: 'extra', name: 'Figurante', type: 'outsider', difficulty: 1, nightOrderFirst: null, nightOrderOther: null, summary: 'Pode morrer a qualquer momento por escolha do storyteller.', action: 'day_extra' },
+  { id: 'enchanted', name: 'Encantada', type: 'outsider', difficulty: 2, nightOrderFirst: null, nightOrderOther: null, summary: 'Quando morre, alguém fica bêbado aleatoriamente.', action: 'passive' },
 
   { id: 'poisoner', name: 'Envenenador', type: 'minion', difficulty: 2, nightOrderFirst: 20, nightOrderOther: 20, summary: 'A cada noite, escolhe alguém para ficar envenenado. Ações e informações podem falhar.', action: 'poisoner' },
   { id: 'spy', name: 'Espião', type: 'minion', difficulty: 2, nightOrderFirst: 24, nightOrderOther: 24, summary: 'Vê o grimório completo. Para informações do bem, pode registrar como Townsfolk.', action: 'spy' },
   { id: 'scarlet_woman', name: 'Mulher Escarlate', type: 'minion', difficulty: 3, nightOrderFirst: null, nightOrderOther: null, summary: 'Se o demônio morrer com jogadores vivos suficientes, ela vira o novo Imp.', action: 'scarlet_woman' },
   { id: 'baron', name: 'Barão', type: 'minion', difficulty: 1, nightOrderFirst: null, nightOrderOther: null, summary: 'Na montagem, coloca +2 Outsiders e -2 Townsfolk.', action: 'baron' },
+  { id: 'devils_advocate', name: 'Advogado do Diabo', type: 'minion', difficulty: 2, nightOrderFirst: 16, nightOrderOther: 16, summary: 'À noite, escolhe alguém para ficar imune a execuções no dia seguinte.', action: 'devils_advocate' },
+  { id: 'politician', name: 'Político', type: 'minion', difficulty: 2, nightOrderFirst: null, nightOrderOther: null, summary: 'Seu voto vale por dois e pode falar em qualquer nominação.', action: 'day_manual' },
+  { id: 'manipulator', name: 'Manipulador', type: 'minion', difficulty: 3, nightOrderFirst: null, nightOrderOther: null, summary: 'Com 3 vivos, pode dar mais um dia mesmo se o demônio morrer executado.', action: 'passive' },
+  { id: 'explosive', name: 'Explosivo', type: 'minion', difficulty: 3, nightOrderFirst: null, nightOrderOther: null, summary: 'Ao morrer, dois jogadores bons aleatórios morrem na próxima noite.', action: 'explosive' },
+  { id: 'witch', name: 'Bruxa', type: 'minion', difficulty: 2, nightOrderFirst: 18, nightOrderOther: 18, summary: 'Toda noite amaldiçoa alguém. Se essa pessoa nominar, ela morre.', action: 'witch' },
+  { id: 'marker', name: 'Marcador', type: 'minion', difficulty: 3, nightOrderFirst: 22, nightOrderOther: null, summary: 'Na primeira noite marca alguém. Se o marcado morrer por execução, o mal vence.', action: 'marker' },
+  { id: 'assassin', name: 'Assassino', type: 'minion', difficulty: 3, nightOrderFirst: null, nightOrderOther: 28, summary: 'Uma vez por jogo, mata uma pessoa ignorando proteções.', action: 'assassin' },
+  { id: 'widow', name: 'Widow', type: 'minion', difficulty: 3, nightOrderFirst: 14, nightOrderOther: null, summary: 'Na primeira noite vê o grimório e envenena alguém permanentemente; alguém sabe quem ela é.', action: 'widow' },
 
-  { id: 'imp', name: 'Imp', type: 'demon', difficulty: 4, nightOrderFirst: null, nightOrderOther: 50, summary: 'Nas noites depois da primeira, escolhe alguém para morrer. Pode se matar para passar o demônio.', action: 'imp' }
+  { id: 'imp', name: 'Imp', type: 'demon', difficulty: 4, nightOrderFirst: null, nightOrderOther: 50, summary: 'Nas noites depois da primeira, escolhe alguém para morrer. Pode se matar para passar o demônio.', action: 'imp' },
+  { id: 'vampire', name: 'Vampiro', type: 'demon', difficulty: 5, nightOrderFirst: null, nightOrderOther: 50, summary: 'Há um Townsfolk a mais. Sua primeira vítima vira Advogado do Diabo.', action: 'vampire' },
+  { id: 'po', name: 'Po', type: 'demon', difficulty: 5, nightOrderFirst: null, nightOrderOther: 50, summary: 'Só mata em uma noite. Quando mata, mata 1 + noites que ficou sem matar.', action: 'po' },
+  { id: 'overlord', name: 'Overlord', type: 'demon', difficulty: 5, nightOrderFirst: null, nightOrderOther: 50, summary: 'Existe um minion a mais. Não mata direto; marca alguém que pode morrer se for nominado por bom.', action: 'overlord' },
+  { id: 'parasite', name: 'Parasita', type: 'demon', difficulty: 5, nightOrderFirst: 50, nightOrderOther: 50, summary: 'Na primeira noite escolhe um hospedeiro. O bem só vence se o hospedeiro estiver morto.', action: 'parasite' },
+  { id: 'pukka', name: 'Pukka', type: 'demon', difficulty: 5, nightOrderFirst: 50, nightOrderOther: 50, summary: 'Escolhe alguém; primeiro fica envenenado e morre na noite seguinte.', action: 'pukka' }
 ];
 
 export function roleById(id) {

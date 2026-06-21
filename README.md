@@ -25,6 +25,8 @@ No repositório, use **Settings > Pages > Source > GitHub Actions**.
 7. Noite roda por etapas, pulando mortos e travando cada ação depois de confirmada.
 8. Dia registra execução e ações manuais.
 
-## Observação
+## V7
+
+Esta versão adiciona novos Outsiders, Minions e Demônios ao modo expandido e à seleção personalizada, além de distribuição automática para Vampiro/Overlord, suporte a venenos permanentes, mortes pendentes e condições extras de fim de jogo.
 
 As descrições são resumos curtos/originais em português para uso no protótipo.
