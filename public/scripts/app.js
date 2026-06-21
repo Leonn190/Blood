@@ -1211,6 +1211,9 @@ function demonKillTarget(demon, target, options = {}) {
     }
   }
   addDemonNightDeath(killed.id, demon);
+  if (state.game.night.alchemistWatch?.targetId === killed.id) {
+    state.game.status.alchemistDemonId = demon.id;
+  }
   return note || `${playerName(killed)} morrerá ao amanhecer.`;
 }
 
