@@ -5,6 +5,13 @@ export const TYPE_LABEL = {
   demon: 'Demônio'
 };
 
+export const TYPE_EMOJI = {
+  townsfolk: '🔵',
+  outsider: '🟡',
+  minion: '🟣',
+  demon: '🔴'
+};
+
 export const TYPE_ORDER = ['townsfolk', 'outsider', 'minion', 'demon'];
 
 export const DISTRIBUTIONS = {
@@ -25,9 +32,28 @@ export const SCRIPTS = [
   {
     id: 'classic',
     name: 'Modo Clássico',
-    subtitle: 'Trouble Brewing simplificado para celular',
-    description: 'Única seleção ativa neste MVP. O host escolhe a subseleção de roles e o site guia a noite.'
+    subtitle: 'Base clássica',
+    description: 'Seleção clássica com as 22 roles iniciais. Boa para partidas mais simples.'
+  },
+  {
+    id: 'expanded',
+    name: 'Seleção Completa',
+    subtitle: 'Tudo que existe no site',
+    description: 'Usa todas as roles cadastradas no site, incluindo as novas roles personalizadas.'
+  },
+  {
+    id: 'custom',
+    name: 'Seleção Personalizada',
+    subtitle: 'Você escolhe o pool',
+    description: 'Pool livre com todas as roles do site. O guia gerado mostra só as roles escolhidas para a partida.'
   }
+];
+
+export const CLASSIC_ROLE_IDS = [
+  'washerwoman', 'librarian', 'investigator', 'chef', 'empath', 'fortune_teller', 'undertaker', 'monk', 'ravenkeeper', 'virgin', 'slayer', 'soldier', 'mayor',
+  'butler', 'drunk', 'recluse', 'saint',
+  'poisoner', 'spy', 'scarlet_woman', 'baron',
+  'imp'
 ];
 
 export const ROLES = [
@@ -35,155 +61,131 @@ export const ROLES = [
     id: 'washerwoman',
     name: 'Lavadeira',
     type: 'townsfolk',
-    script: 'classic',
-    duration: 2,
+    duration: 1,
     difficulty: -2,
     nightOrderFirst: 40,
     nightOrderOther: null,
-    tags: [],
-    summary: 'Na primeira noite, vê dois jogadores e uma role townsfolk; um deles é aquela role.',
+    summary: 'Na primeira noite, vê dois jogadores e uma role Townsfolk. Um deles é aquela role.',
     action: 'washerwoman'
   },
   {
     id: 'librarian',
     name: 'Bibliotecário',
     type: 'townsfolk',
-    script: 'classic',
-    duration: 2,
+    duration: 1,
     difficulty: -2,
     nightOrderFirst: 50,
     nightOrderOther: null,
-    tags: [],
-    summary: 'Na primeira noite, vê dois jogadores e uma role outsider; um deles é aquela role. Se não houver outsiders, pode saber isso.',
+    summary: 'Na primeira noite, vê dois jogadores e uma role Outsider. Um deles é aquela role.',
     action: 'librarian'
   },
   {
     id: 'investigator',
     name: 'Investigador',
     type: 'townsfolk',
-    script: 'classic',
-    duration: 2,
+    duration: 1,
     difficulty: -2,
     nightOrderFirst: 60,
     nightOrderOther: null,
-    tags: [],
-    summary: 'Na primeira noite, vê dois jogadores e uma role minion; um deles é aquela role.',
+    summary: 'Na primeira noite, vê dois jogadores e uma role Minion. Um deles é aquela role.',
     action: 'investigator'
   },
   {
     id: 'chef',
     name: 'Chef',
     type: 'townsfolk',
-    script: 'classic',
     duration: 1,
     difficulty: -1,
     nightOrderFirst: 70,
     nightOrderOther: null,
-    tags: [],
-    summary: 'Na primeira noite, aprende quantos pares de jogadores malignos estão sentados lado a lado.',
+    summary: 'Na primeira noite, aprende quantos pares malignos estão sentados lado a lado.',
     action: 'chef'
   },
   {
     id: 'empath',
     name: 'Empata',
     type: 'townsfolk',
-    script: 'classic',
-    duration: 2,
+    duration: 1,
     difficulty: -3,
     nightOrderFirst: 80,
     nightOrderOther: 70,
-    tags: [],
-    summary: 'A cada noite, aprende quantos dos seus dois vizinhos vivos são malignos.',
+    summary: 'A cada noite, aprende quantos dos dois vizinhos vivos registram como malignos.',
     action: 'empath'
   },
   {
     id: 'fortune_teller',
     name: 'Vidente',
     type: 'townsfolk',
-    script: 'classic',
-    duration: 3,
+    duration: 1,
     difficulty: -3,
     nightOrderFirst: 90,
     nightOrderOther: 80,
-    tags: [],
-    summary: 'A cada noite, escolhe dois jogadores e aprende se algum deles registra como demônio.',
+    summary: 'A cada noite, escolhe dois jogadores e vê se algum deles registra como demônio.',
     action: 'fortune_teller'
   },
   {
     id: 'undertaker',
     name: 'Coveiro',
     type: 'townsfolk',
-    script: 'classic',
-    duration: 2,
+    duration: 1,
     difficulty: -2,
     nightOrderFirst: null,
     nightOrderOther: 60,
-    tags: [],
-    summary: 'A partir da segunda noite, aprende qual era a role do jogador executado durante o dia.',
+    summary: 'Nas noites depois da primeira, vê a role de quem foi executado no dia anterior.',
     action: 'undertaker'
   },
   {
     id: 'monk',
     name: 'Monge',
     type: 'townsfolk',
-    script: 'classic',
-    duration: 2,
+    duration: 1,
     difficulty: -2,
     nightOrderFirst: null,
-    nightOrderOther: 20,
-    tags: [],
-    summary: 'A cada noite exceto a primeira, escolhe outro jogador para ficar protegido do demônio naquela noite.',
+    nightOrderOther: 30,
+    summary: 'Nas noites depois da primeira, escolhe alguém para ficar protegido do demônio.',
     action: 'monk'
   },
   {
     id: 'ravenkeeper',
     name: 'Guardião dos Corvos',
     type: 'townsfolk',
-    script: 'classic',
     duration: 1,
     difficulty: -2,
     nightOrderFirst: null,
     nightOrderOther: null,
-    tags: [],
-    summary: 'Se morrer durante a noite ou for executado, acorda na próxima noite e escolhe um jogador para aprender a role dele.',
+    summary: 'Se morreu à noite ou foi executado, acorda na próxima noite e vê a role de alguém.',
     action: 'ravenkeeper'
   },
   {
     id: 'virgin',
     name: 'Virgem',
     type: 'townsfolk',
-    script: 'classic',
     duration: 0,
     difficulty: -1,
     nightOrderFirst: null,
     nightOrderOther: null,
-    tags: [],
-    summary: 'Durante o dia, a primeira nomeação feita contra ela pode executar o nomeador se ele for townsfolk.',
+    summary: 'Durante o dia, a primeira nomeação contra ela pode executar quem nomeou se for Townsfolk.',
     action: 'manual_day'
   },
   {
     id: 'slayer',
     name: 'Caçador',
     type: 'townsfolk',
-    script: 'classic',
     duration: 0,
     difficulty: -1,
     nightOrderFirst: null,
     nightOrderOther: null,
-    tags: [],
-    summary: 'Durante o dia, uma vez por jogo, escolhe um jogador; se for o demônio, ele morre.',
+    summary: 'Durante o dia, uma vez por jogo, escolhe alguém. Se for o demônio, ele morre.',
     action: 'manual_day'
   },
   {
     id: 'soldier',
     name: 'Soldado',
     type: 'townsfolk',
-    script: 'classic',
     duration: 0,
     difficulty: -1,
     nightOrderFirst: null,
     nightOrderOther: null,
-    tags: [],
     summary: 'Não morre pelo ataque direto do demônio.',
     action: 'passive'
   },
@@ -191,25 +193,65 @@ export const ROLES = [
     id: 'mayor',
     name: 'Prefeito',
     type: 'townsfolk',
-    script: 'classic',
     duration: 0,
     difficulty: -2,
     nightOrderFirst: null,
     nightOrderOther: null,
-    tags: [],
-    summary: 'Pode vencer se restarem três vivos e não houver execução. Se atacado à noite, o ataque pode ser redirecionado.',
+    summary: 'Pode vencer se restarem três vivos e ninguém for executado. Ataque noturno pode redirecionar.',
     action: 'passive'
+  },
+  {
+    id: 'exorcist',
+    name: 'Exorcista',
+    type: 'townsfolk',
+    duration: 1,
+    difficulty: -3,
+    nightOrderFirst: 5,
+    nightOrderOther: 5,
+    summary: 'A cada noite, escolhe alguém. Se for maligno, o poder dele é bloqueado naquela noite.',
+    action: 'exorcist'
+  },
+  {
+    id: 'doctor',
+    name: 'Médico',
+    type: 'townsfolk',
+    duration: 1,
+    difficulty: -2,
+    nightOrderFirst: 6,
+    nightOrderOther: 6,
+    summary: 'A cada noite, escolhe alguém para ficar livre de veneno e de bebedeira naquela rodada.',
+    action: 'doctor'
+  },
+  {
+    id: 'protector',
+    name: 'Protetor',
+    type: 'townsfolk',
+    duration: 0,
+    difficulty: -2,
+    nightOrderFirst: null,
+    nightOrderOther: null,
+    summary: 'Os dois jogadores vivos ao seu lado ficam protegidos de morte causada pelo demônio.',
+    action: 'passive'
+  },
+  {
+    id: 'cannibal',
+    name: 'Canibal',
+    type: 'townsfolk',
+    duration: 1,
+    difficulty: -1,
+    nightOrderFirst: null,
+    nightOrderOther: 95,
+    summary: 'À noite, pode roubar poder de alguém morto. Se escolher alguém maligno, morre.',
+    action: 'cannibal'
   },
   {
     id: 'butler',
     name: 'Mordomo',
     type: 'outsider',
-    script: 'classic',
     duration: 1,
     difficulty: 1,
     nightOrderFirst: 100,
     nightOrderOther: 90,
-    tags: [],
     summary: 'A cada noite, escolhe um mestre. No dia seguinte, só deve votar se o mestre votar junto.',
     action: 'butler'
   },
@@ -217,104 +259,88 @@ export const ROLES = [
     id: 'drunk',
     name: 'Bêbado',
     type: 'outsider',
-    script: 'classic',
-    duration: 1,
+    duration: 0,
     difficulty: 2,
     nightOrderFirst: null,
     nightOrderOther: null,
-    tags: [],
-    summary: 'Não sabe que é o Bêbado; recebe uma role townsfolk falsa e informações ruins.',
+    summary: 'Não sabe que é o Bêbado. Recebe uma role Townsfolk falsa e pode receber informação errada.',
     action: 'drunk'
   },
   {
     id: 'recluse',
     name: 'Recluso',
     type: 'outsider',
-    script: 'classic',
     duration: 0,
     difficulty: 1,
     nightOrderFirst: null,
     nightOrderOther: null,
-    tags: [],
-    summary: 'Pode registrar como maligno, minion ou demônio mesmo sendo bom.',
+    summary: 'Pode registrar como maligno, Minion ou demônio mesmo sendo bom.',
     action: 'passive'
   },
   {
     id: 'saint',
     name: 'Santo',
     type: 'outsider',
-    script: 'classic',
     duration: 0,
     difficulty: 3,
     nightOrderFirst: null,
     nightOrderOther: null,
-    tags: [],
-    summary: 'Se for executado, o bem perde.',
+    summary: 'Se for executado e não estiver protegido de falha, o mal vence.',
     action: 'manual_day'
   },
   {
     id: 'poisoner',
     name: 'Envenenador',
     type: 'minion',
-    script: 'classic',
-    duration: 2,
+    duration: 1,
     difficulty: 3,
     nightOrderFirst: 20,
     nightOrderOther: 10,
-    tags: [],
-    summary: 'A cada noite, escolhe alguém para ficar envenenado; ações e informações dessa pessoa podem falhar.',
+    summary: 'A cada noite, escolhe alguém para ficar envenenado. Ações e informações dessa pessoa podem falhar.',
     action: 'poisoner'
   },
   {
     id: 'spy',
     name: 'Espião',
     type: 'minion',
-    script: 'classic',
-    duration: 2,
+    duration: 1,
     difficulty: 2,
     nightOrderFirst: 30,
-    nightOrderOther: 30,
-    tags: [],
-    summary: 'Vê quem é quem. Para informações do bem, pode registrar como townsfolk.',
+    nightOrderOther: 20,
+    summary: 'Vê o grimório completo. Para informações do bem, pode registrar como Townsfolk.',
     action: 'spy'
   },
   {
     id: 'scarlet_woman',
     name: 'Mulher Escarlate',
     type: 'minion',
-    script: 'classic',
     duration: 0,
     difficulty: 3,
     nightOrderFirst: null,
     nightOrderOther: null,
-    tags: [],
-    summary: 'Se o demônio morrer com jogadores vivos suficientes, ela pode virar o novo demônio.',
+    summary: 'Se o demônio morrer com jogadores vivos suficientes, ela vira o novo Imp.',
     action: 'scarlet_woman'
   },
   {
     id: 'baron',
     name: 'Barão',
     type: 'minion',
-    script: 'classic',
     duration: 0,
     difficulty: 2,
     nightOrderFirst: null,
     nightOrderOther: null,
-    tags: [],
-    summary: 'Na montagem, adiciona mais outsiders e reduz townsfolk.',
+    summary: 'Na montagem, coloca +2 Outsiders e -2 Townsfolk.',
     action: 'baron'
   },
   {
     id: 'imp',
     name: 'Imp',
     type: 'demon',
-    script: 'classic',
-    duration: 3,
+    duration: 1,
     difficulty: 4,
     nightOrderFirst: null,
     nightOrderOther: 40,
-    tags: [],
-    summary: 'A cada noite exceto a primeira, escolhe alguém para morrer. Se matar a si mesmo, pode passar o demônio para um minion.',
+    summary: 'Nas noites depois da primeira, escolhe alguém para morrer. Pode se matar para passar o demônio.',
     action: 'imp'
   }
 ];
@@ -328,7 +354,12 @@ export function rolesByType(type) {
 }
 
 export function rolesForScript(scriptId = 'classic') {
-  return ROLES.filter((role) => role.script === scriptId);
+  if (scriptId === 'classic') return ROLES.filter((role) => CLASSIC_ROLE_IDS.includes(role.id));
+  return ROLES;
+}
+
+export function scriptById(scriptId) {
+  return SCRIPTS.find((script) => script.id === scriptId) || SCRIPTS[0];
 }
 
 export function getDistribution(playerCount, hasBaron = false) {

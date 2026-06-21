@@ -609,3 +609,169 @@ select option:hover {
   color: var(--text) !important;
   padding: 12px;
 }
+
+/* v5 ajustes mobile */
+select,
+select option,
+input,
+textarea {
+  background-color: #171728;
+  color: var(--text);
+}
+
+select option {
+  color: #f5efe6;
+  background: #171728;
+}
+
+select option:checked {
+  background: #332942;
+  color: #fff3cf;
+}
+
+.role-selection-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.role-selection-grid .card {
+  min-height: 146px;
+  padding: 10px;
+  border-radius: 18px;
+}
+
+.role-selection-grid .role-check {
+  grid-template-columns: 22px 1fr;
+  gap: 8px;
+}
+
+.role-selection-grid .role-title {
+  display: block;
+}
+
+.role-selection-grid .role-title h3 {
+  font-size: 0.92rem;
+  line-height: 1.04;
+}
+
+.role-selection-grid .role-title p {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 3.7em;
+  font-size: 0.74rem;
+}
+
+.role-selection-grid .type-pill {
+  margin-top: 7px;
+  font-size: 0.63rem;
+  padding: 4px 6px;
+}
+
+.role-card-content {
+  min-width: 0;
+}
+
+.compact-hint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.mini-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: 999px;
+  padding: 3px 7px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--soft-line);
+  color: var(--text);
+  font-weight: 900;
+}
+
+.compact-metrics {
+  margin-top: 12px;
+}
+
+.compact-metrics .metric-head strong {
+  font-size: 1.2rem;
+}
+
+.count-box.townsfolk { border-color: rgba(92, 169, 255, 0.32); }
+.count-box.outsider { border-color: rgba(240, 195, 106, 0.34); }
+.count-box.minion { border-color: rgba(183, 148, 244, 0.36); }
+.count-box.demon { border-color: rgba(207, 75, 75, 0.42); }
+
+.big-question,
+.reveal-card {
+  height: 292px;
+  min-height: 292px;
+  max-height: 292px;
+}
+
+.reveal-card {
+  width: 100%;
+  overflow: auto;
+  text-align: left;
+  color: var(--text);
+  border-left-width: 8px;
+}
+
+.reveal-card.townsfolk {
+  border-color: rgba(92, 169, 255, 0.52);
+  background:
+    radial-gradient(circle at top left, rgba(92, 169, 255, 0.2), transparent 60%),
+    var(--panel);
+}
+
+.reveal-card.outsider {
+  border-color: rgba(240, 195, 106, 0.56);
+  background:
+    radial-gradient(circle at top left, rgba(240, 195, 106, 0.2), transparent 60%),
+    var(--panel);
+}
+
+.reveal-card.minion {
+  border-color: rgba(183, 148, 244, 0.56);
+  background:
+    radial-gradient(circle at top left, rgba(183, 148, 244, 0.22), transparent 60%),
+    var(--panel);
+}
+
+.reveal-card.demon {
+  border-color: rgba(207, 75, 75, 0.64);
+  background:
+    radial-gradient(circle at top left, rgba(207, 75, 75, 0.24), transparent 60%),
+    var(--panel);
+}
+
+.reveal-card h2 {
+  margin-bottom: 12px;
+}
+
+.reveal-card .type-pill {
+  margin-top: 12px;
+}
+
+[data-action="select-script"] {
+  cursor: pointer;
+}
+
+@media (max-width: 370px) {
+  .role-selection-grid {
+    gap: 7px;
+  }
+  .role-selection-grid .card {
+    padding: 9px;
+  }
+  .role-selection-grid .role-title h3 {
+    font-size: 0.84rem;
+  }
+  .role-selection-grid .role-title p {
+    font-size: 0.7rem;
+  }
+}
