@@ -383,7 +383,7 @@ function resetAll() {
 
 function createDemonBluffs(selectedIds) {
   const possible = getRolePoolForSetup()
-    .filter((role) => role.type === 'townsfolk' && !selectedIds.includes(role.id))
+    .filter((role) => !isEvilRole(role.id) && !selectedIds.includes(role.id))
     .filter((role) => !(selectedIds.includes('king') && role.id === 'soldier'))
     .map((role) => role.id);
   return sampleMany(possible, 3);
@@ -447,7 +447,7 @@ function startGame() {
     players,
     revealIndex: 0,
     redHerringId: redHerring?.id || null,
-    bluffs: createDemonBluffs(selectedIds),
+    bluffs: players.length >= 7 ? createDemonBluffs(selectedIds) : [],
     technicalDrunkId: technicalDrunk?.id || null,
     intellectualEvilOrder: evilOrder,
     disabledPowerIds: [],
@@ -534,8 +534,6 @@ function startNight(number = state.game.nightNumber) {
   state.game.status.lastTargets = [];
   state.game.status.alchemistDemonId = null;
   state.game.status.professorSwap = null;
-  const executed = findPlayer(state.game.day?.lastExecutedId);
-  const executedRavenkeeperId = executed?.currentRoleId === 'ravenkeeper' ? executed.id : null;
   state.game.night = {
     number,
     currentStep: 0,
@@ -547,7 +545,7 @@ function startNight(number = state.game.nightNumber) {
     exorcisedId: null,
     blockedActorIds: [],
     deadTonightIds: [],
-    pendingRavenkeeperId: executedRavenkeeperId,
+    pendingRavenkeeperId: null,
     pendingClumsyIds: [],
     targetedIds: [],
     alchemistWatch: null,
@@ -579,7 +577,7 @@ function buildNightSteps(nightNumber) {
   const steps = [];
   const players = allPlayers();
 
-  if (nightNumber === 1) {
+  if (nightNumber === 1 && players.length >= 7) {
     if (players.some((p) => trueRole(p)?.type === 'minion')) steps.push({ id: 'minion-info', kind: 'team', title: 'Informação dos minions', order: 1, action: 'minion-info' });
     if (players.some((p) => trueRole(p)?.type === 'demon')) steps.push({ id: 'demon-info', kind: 'team', title: 'Informação do demônio', order: 2, action: 'demon-info' });
   }
@@ -878,7 +876,8 @@ function executeAutomaticAction(action) {
 function actionMinionInfo(step) {
   if (hasAliveRole('magician')) return markResult(step.id, 'Mágico em jogo: identidade do demônio ocultada.');
   const demons = livingPlayers().filter((player) => trueRole(player)?.type === 'demon');
-  markResult(step.id, `<strong>Demônio:</strong> ${demons.map(playerName).join(', ') || 'nenhum'}`);
+  const minions = livingPlayers().filter((player) => trueRole(player)?.type === 'minion');
+  markResult(step.id, `<strong>Demônio:</strong> ${demons.map(playerName).join(', ') || 'nenhum'}<br><strong>Minions:</strong> ${minions.map(playerName).join(', ') || 'nenhum'}`);
 }
 
 function actionDemonInfo(step) {
@@ -1551,7 +1550,7 @@ function resolveDemonBackup(reason) {
   const aliveDemons = livingPlayers().filter((player) => trueRole(player)?.type === 'demon');
   if (aliveDemons.length) return;
   const scarlet = livingPlayers().find((player) => player.currentRoleId === 'scarlet_woman');
-  if (scarlet && livingPlayers().length >= 5 && !isDrunkLike(scarlet)) {
+  if (scarlet && livingPlayers().length >= 4 && !isDrunkLike(scarlet)) {
     scarlet.previousRoleId = 'scarlet_woman';
     scarlet.currentRoleId = 'imp';
     scarlet.trueRoleId = 'imp';
@@ -1954,7 +1953,7 @@ function renderDay() {
     <main class="app-shell">
       ${topbar(`Dia ${day.number}`, 'Host registra execução e mortes')}
       <section class="card"><p>Dia é controlado pelo host. Escolha quem foi executado e vá direto para a próxima noite.</p></section>
-      <section class="section-title"><h3>Jogadores</h3></section><section class="grid">${allPlayers().map((player) => renderPlayerHostCard(player, { checkbox: true, showRole: false })).join('')}</section>
+      <section class="section-title"><h3>Jogadores</h3></section><section class="grid">${allPlayers().map((player) => renderPlayerHostCard(player, { checkbox: true, showRole: true })).join('')}</section>
       ${renderDayPowers()}
       <section class="card" style="margin-top: 12px;"><div class="form-row"><label>Quem foi executado hoje?</label>${playerSelect('executed', { livingOnly: true })}<p class="hint">Se ninguém foi executado, deixe vazio.</p></div></section>
       ${day.warnings?.length ? `<section class="card warning" style="margin-top: 12px;">${day.warnings.map(escapeHTML).join('<br>')}</section>` : ''}
